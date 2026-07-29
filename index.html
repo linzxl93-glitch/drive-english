@@ -239,8 +239,8 @@ input:focus,textarea:focus{border-color:var(--pink);}
       <p class="page-sub" id="plan-date-sub"></p>
       <div class="card card-pink" style="background:linear-gradient(135deg,rgba(255,181,186,0.5),rgba(168,216,240,0.4));">
         <div style="font-size:11px;color:var(--text-light);">📚 当前课文</div>
-        <div style="font-weight:800;font-size:16px;margin-top:4px;">Unit 1 · Show time!</div>
-        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">MM Publications · 第33课 人物描述</div>
+        <div style="font-weight:800;font-size:16px;margin-top:4px;">Module 4 · You and me</div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">New Get Smart 1 · MM Publications</div>
       </div>
       <div class="card card-pink">
         <div class="flex items-center justify-between" style="margin-bottom:12px;">
@@ -268,9 +268,9 @@ input:focus,textarea:focus{border-color:var(--pink);}
           💡 教材作业模板：
           <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;">
             <span class="tag tag-blue" style="cursor:pointer;" onclick="quickAddPlan('🎧 听CD pp.40-41(10分钟)','听力')">听CD</span>
-            <span class="tag tag-pink" style="cursor:pointer;" onclick="quickAddPlan('🗣️ 跟读pp.40-41句型','跟读')">跟读</span>
-            <span class="tag tag-green" style="cursor:pointer;" onclick="quickAddPlan('📖 认读单词boy/girl/sad','认读')">认读</span>
-            <span class="tag tag-yellow" style="cursor:pointer;" onclick="quickAddPlan('✍️ 写练习册pp.29-30','书写')">书写</span>
+            <span class="tag tag-pink" style="cursor:pointer;" onclick="quickAddPlan('🗣️ 跟读How old are you句型','跟读')">跟读句型</span>
+            <span class="tag tag-green" style="cursor:pointer;" onclick="quickAddPlan('📖 认读boy/girl/tall/short','认读')">认读单词</span>
+            <span class="tag tag-yellow" style="cursor:pointer;" onclick="quickAddPlan('✍️ 写练习册pp.29-30','书写')">写练习册</span>
             <span class="tag tag-blue" style="cursor:pointer;" onclick="quickAddPlan('🎤 微信录音发句型','录音')">录音</span>
             <span class="tag tag-pink" style="cursor:pointer;" onclick="quickAddPlan('🔮 预习pp.42-43(15分钟)','预习')">预习</span>
           </div>
@@ -304,7 +304,7 @@ input:focus,textarea:focus{border-color:var(--pink);}
       <p class="page-sub">听老师读，小朋友跟着读 · 每天10分钟</p>
 
       <div class="shadow-card">
-        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">📚 Unit 1 · Show time!</div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">📚 Module 4 · You and me</div>
         <div class="sentence-en" id="shadow-en">He is a boy.</div>
         <div class="sentence-zh" id="shadow-zh">他是个男孩。</div>
         <div style="font-size:11px;color:var(--text-light);margin-bottom:8px;">
@@ -488,7 +488,7 @@ input:focus,textarea:focus{border-color:var(--pink);}
 <script>
 // ===== 数据层 =====
 const Store = {
-  K:'pvz_eng_v4', // v4升级：教材对接+跟读模块
+  K:'pvz_eng_v5', // v5升级：完整对接New Get Smart 1 Module 4
   load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},
   save(d){localStorage.setItem(this.K,JSON.stringify(d));},
   get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},
@@ -515,34 +515,46 @@ Store.set('shadowIdx',Store.get('shadowIdx',0));
 Store.set('shadowProgress',Store.get('shadowProgress',{}));
 Store.set('unlockedCars',Store.get('unlockedCars',[0]));
 
-// ===== 跟读课文数据（MM Publications Unit 1） =====
+// ===== 跟读课文数据（New Get Smart 1 · Module 4: You and me） =====
 const SHADOW_SENTENCES = [
+  {en:'How old are you?',zh:'你几岁了？',emoji:'🎂'},
+  {en:"I'm six.",zh:'我6岁。',emoji:'6️⃣'},
+  {en:"You're seven.",zh:'你7岁。',emoji:'7️⃣'},
+  {en:'Are you happy?',zh:'你开心吗？',emoji:'😄'},
+  {en:'Yes, I am.',zh:'是的，我开心。',emoji:'✅'},
+  {en:"No, I'm not.",zh:'不，我不开心。',emoji:'❌'},
+  {en:"He's thin.",zh:'他很瘦。',emoji:'🥢'},
+  {en:"She's sad.",zh:'她很伤心。',emoji:'😢'},
+  {en:'Is she sad?',zh:'她伤心吗？',emoji:'❓'},
+  {en:'Yes, she is.',zh:'是的，她是。',emoji:'✅'},
+  {en:"No, she isn't.",zh:'不，她不是。',emoji:'❌'},
   {en:'He is a boy.',zh:'他是个男孩。',emoji:'👦'},
   {en:'She is a girl.',zh:'她是个女孩。',emoji:'👧'},
   {en:'He is tall.',zh:'他很高。',emoji:'📏'},
   {en:'She is short.',zh:'她很矮。',emoji:'📐'},
-  {en:'He is happy.',zh:'他很开心。',emoji:'😄'},
-  {en:'She is sad.',zh:'她很伤心。',emoji:'😢'},
-  {en:'Is she sad?',zh:'她伤心吗？',emoji:'❓'},
-  {en:'Yes, she is.',zh:'是的，她是。',emoji:'✅'},
-  {en:'Is he happy?',zh:'他开心吗？',emoji:'❓'},
-  {en:'No, he is not. (No, he isn\'t.)',zh:'不，他不是。',emoji:'✅'},
+  {en:'He is hungry.',zh:'他饿了。',emoji:'🍔'},
+  {en:'She is thirsty.',zh:'她渴了。',emoji:'🥤'},
 ];
 
-// ===== 词库（MM Publications · 第33课 人物描述） =====
+// ===== 词库（New Get Smart 1 · Module 4: You and me） =====
 const WORDS = [
   {en:'boy',ph:'/bɔɪ/',zh:'男孩 👦',ex:'He is a boy.',emoji:'👦'},
   {en:'girl',ph:'/ɡɜːrl/',zh:'女孩 👧',ex:'She is a girl.',emoji:'👧'},
+  {en:'big',ph:'/bɪɡ/',zh:'大的 🐘',ex:'The elephant is big.',emoji:'🐘'},
+  {en:'small',ph:'/smɔːl/',zh:'小的 🐭',ex:'The mouse is small.',emoji:'🐭'},
   {en:'tall',ph:'/tɔːl/',zh:'高的 📏',ex:'He is tall.',emoji:'📏'},
   {en:'short',ph:'/ʃɔːrt/',zh:'矮的 📐',ex:'She is short.',emoji:'📐'},
-  {en:'happy',ph:'/ˈhæpi/',zh:'开心 😄',ex:'He is happy.',emoji:'😄'},
+  {en:'thin',ph:'/θɪn/',zh:'瘦的 🥢',ex:'He is thin.',emoji:'🥢'},
+  {en:'fat',ph:'/fæt/',zh:'胖的 🐷',ex:'The pig is fat.',emoji:'🐷'},
+  {en:'happy',ph:'/ˈhæpi/',zh:'开心 😄',ex:'I am happy.',emoji:'😄'},
   {en:'sad',ph:'/sæd/',zh:'伤心 😢',ex:'She is sad.',emoji:'😢'},
-  {en:'man',ph:'/mæn/',zh:'男人 👨',ex:'He is a man.',emoji:'👨'},
-  {en:'woman',ph:'/ˈwʊmən/',zh:'女人 👩',ex:'She is a woman.',emoji:'👩'},
-  {en:'He',ph:'/hiː/',zh:'他（主格）',ex:'He is a boy.',emoji:'👨'},
-  {en:'She',ph:'/ʃiː/',zh:'她（主格）',ex:'She is a girl.',emoji:'👩'},
-  {en:'his',ph:'/hɪz/',zh:'他的',ex:'This is his book.',emoji:'📕'},
-  {en:'her',ph:'/hɜːr/',zh:'她的',ex:'This is her book.',emoji:'📗'},
+  {en:'hungry',ph:'/ˈhʌŋɡri/',zh:'饿了 🍔',ex:'I am hungry.',emoji:'🍔'},
+  {en:'thirsty',ph:'/ˈθɜːrsti/',zh:'渴了 🥤',ex:'He is thirsty.',emoji:'🥤'},
+  {en:'eleven',ph:'/ɪˈlevən/',zh:'数字11',ex:'I am eleven.',emoji:'1️⃣1️⃣'},
+  {en:'twelve',ph:'/twelv/',zh:'数字12',ex:'I am twelve.',emoji:'1️⃣2️⃣'},
+  {en:'thirteen',ph:'/ˌθɜːrˈtiːn/',zh:'数字13',ex:'I am thirteen.',emoji:'1️⃣3️⃣'},
+  {en:'fourteen',ph:'/ˌfɔːrˈtiːn/',zh:'数字14',ex:'I am fourteen.',emoji:'1️⃣4️⃣'},
+  {en:'fifteen',ph:'/ˌfɪfˈtiːn/',zh:'数字15',ex:'I am fifteen.',emoji:'1️⃣5️⃣'},
 ];
 
 // ===== 车型库（6岁友好 · 解锁门槛低） =====
@@ -555,40 +567,56 @@ const CARS = [
   {name:'宇宙飞车',emoji:'🛸',wins:40},
 ];
 
-// ===== 游戏题库（MM Publications · 第33课情境） =====
+// ===== 游戏题库（New Get Smart 1 · Module 4: You and me） =====
 const QUESTIONS = [
-  // 句型理解
+  // 基础翻译
   {q:'"He is a boy." 怎么翻译？',opts:['他是个男孩','她是个女孩','我是男孩'],ans:0},
   {q:'"She is a girl." 怎么翻译？',opts:['他是个男人','她是个女孩','她是男孩'],ans:1},
   {q:'"He is tall." 怎么翻译？',opts:['他很矮','他很高','她很高'],ans:1},
   {q:'"She is short." 怎么翻译？',opts:['她很矮','她很高','他很矮'],ans:0},
+  {q:'"He is thin." 怎么翻译？',opts:['他很胖','他很瘦','她很瘦'],ans:1},
+  {q:'"She is fat." 怎么翻译？',opts:['她很胖','她很瘦','他很胖'],ans:0},
   {q:'"He is happy." 怎么翻译？',opts:['他很伤心','他很开心','她很开心'],ans:1},
   {q:'"She is sad." 怎么翻译？',opts:['她很伤心','她很开心','他很伤心'],ans:0},
+  {q:'"He is hungry." 怎么翻译？',opts:['他渴了','他饿了','她饿了'],ans:1},
+  {q:'"She is thirsty." 怎么翻译？',opts:['她饿了','她渴了','他渴了'],ans:1},
 
   // 中文 → 英文
   {q:'"他是个男孩" 用英语说？',opts:['He is a boy.','She is a boy.','He is a girl.'],ans:0},
   {q:'"她是个女孩" 用英语说？',opts:['He is a girl.','She is a girl.','She is a boy.'],ans:1},
   {q:'"他很高" 用英语说？',opts:['He is short.','She is tall.','He is tall.'],ans:2},
   {q:'"她很矮" 用英语说？',opts:['She is short.','She is tall.','He is short.'],ans:0},
-  {q:'"他很开心" 用英语说？',opts:['He is sad.','He is happy.','She is happy.'],ans:1},
-  {q:'"她很伤心" 用英语说？',opts:['She is sad.','She is happy.','He is sad.'],ans:0},
+  {q:'"他很瘦" 用英语说？',opts:['He is fat.','He is thin.','She is thin.'],ans:1},
+  {q:'"她很开心" 用英语说？',opts:['He is sad.','She is happy.','She is sad.'],ans:1},
+  {q:'"他饿了" 用英语说？',opts:['He is hungry.','He is thirsty.','She is hungry.'],ans:0},
+  {q:'"她渴了" 用英语说？',opts:['She is hungry.','She is thirsty.','He is thirsty.'],ans:1},
 
   // 看图识词
   {q:'👦 这个单词怎么读？',opts:['girl','boy','man'],ans:1},
   {q:'👧 这个单词怎么读？',opts:['boy','woman','girl'],ans:2},
+  {q:'🐘 这个表示什么意思？',opts:['big','small','tall'],ans:0},
+  {q:'🐭 这个表示什么意思？',opts:['big','small','tall'],ans:1},
   {q:'😄 这个单词怎么读？',opts:['sad','happy','angry'],ans:1},
-  {q:'😢 这个单词怎么读？',opts:['happy','sad','tired'],ans:1},
+  {q:'😢 这个单词怎么读？',opts:['happy','sad','hungry'],ans:1},
+  {q:'🍔 这个单词怎么读？',opts:['hungry','thirsty','tired'],ans:0},
+  {q:'🥤 这个单词怎么读？',opts:['hungry','thirsty','happy'],ans:1},
 
-  // 选词填空（教材Show time）
-  {q:'He is a ___. (boy/girl)',opts:['girl','boy','man'],ans:1},
-  {q:'She is a ___. (boy/girl)',opts:['girl','boy','woman'],ans:0},
-  {q:'He is ___. (tall/short) 📏',opts:['short','tall','happy'],ans:1},
-  {q:'She is ___. (tall/short) 📐',opts:['short','tall','sad'],ans:0},
+  // 问句与回答
+  {q:'"How old are you?" 怎么回答？',opts:["I'm six.","I'm happy.","I'm tall."],ans:0},
+  {q:'"Are you happy?" 肯定回答？',opts:['Yes, I am.','No, I am.','Yes, she is.'],ans:0},
+  {q:'"Are you happy?" 否定回答？',opts:["Yes, I am.","No, I'm not.","No, she isn't."],ans:1},
+  {q:'"Is she sad?" 肯定回答？',opts:["Yes, she is.","No, she isn't.","Yes, I am."],ans:0},
+  {q:'"Is she sad?" 否定回答？',opts:["Yes, she is.","No, she isn't.","No, I don't."],ans:1},
+  {q:'"isn\'t" 是什么的缩写？',opts:['is not','is no','is and'],ans:0},
+  {q:'"He\'s" 是什么的缩写？',opts:['He is','He has','He was'],ans:0},
+  {q:'"She\'s" 是什么的缩写？',opts:['She is','She has','She was'],ans:0},
 
-  // Is she sad? Yes/No 问答
-  {q:'"Is she sad?" 肯定回答？',opts:['Yes, she is.','No, she isn\'t.','Yes, I am.'],ans:0},
-  {q:'"Is she happy?" 否定回答？',opts:['Yes, she is.','No, she isn\'t.','No, I don\'t.'],ans:1},
-  {q:'"isn\'t" 是什么意思？',opts:['是','不是','有没有'],ans:1},
+  // 数字11-15
+  {q:'🔢 "eleven" 是数字几？',opts:['11','12','13'],ans:0},
+  {q:'🔢 "twelve" 是数字几？',opts:['11','12','13'],ans:1},
+  {q:'🔢 "thirteen" 是数字几？',opts:['12','13','14'],ans:1},
+  {q:'🔢 "fourteen" 是数字几？',opts:['13','14','15'],ans:1},
+  {q:'🔢 "fifteen" 是数字几？',opts:['13','14','15'],ans:2},
 ];
 
 // ===== 导航 =====
