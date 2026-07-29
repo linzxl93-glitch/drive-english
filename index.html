@@ -186,6 +186,32 @@ input:focus,textarea:focus{border-color:var(--pink);}
 .garage-lock{font-size:20px;position:absolute;top:8px;right:8px;}
 .garage-progress{font-size:10px;color:var(--text-light);margin-top:4px;}
 
+/* ===== 7. 跟读练习 ===== */
+.shadow-card{background:linear-gradient(135deg,rgba(168,216,240,0.4),rgba(184,230,200,0.4));border:1px solid var(--glass-border);border-radius:20px;padding:20px;text-align:center;backdrop-filter:blur(15px);margin-bottom:12px;}
+.sentence-en{font-size:22px;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.1);margin:8px 0;}
+.sentence-zh{font-size:13px;color:var(--text-light);margin:4px 0 16px;}
+.shadow-step{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.4);border-radius:14px;margin-bottom:8px;cursor:pointer;transition:all .2s;}
+.shadow-step:hover{background:rgba(255,255,255,0.7);transform:translateY(-2px);}
+.shadow-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0;}
+.shadow-num.s1{background:linear-gradient(135deg,#FF8A95,#FFB5BA);}
+.shadow-num.s2{background:linear-gradient(135deg,#6FCB8A,#B8E6C8);}
+.shadow-num.s3{background:linear-gradient(135deg,#6FBCDB,#A8D8F0);}
+.shadow-info{flex:1;text-align:left;}
+.shadow-info-t{font-size:13px;font-weight:700;}
+.shadow-info-s{font-size:11px;color:var(--text-light);}
+.shadow-arrow{font-size:18px;color:var(--text-light);}
+.record-btn{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#FF8A95,#B083D5);color:#fff;font-size:24px;border:none;box-shadow:0 6px 20px rgba(255,138,149,0.4);margin:0 auto;cursor:pointer;transition:all .2s;}
+.record-btn:active{transform:scale(0.95);}
+.record-btn.recording{animation:pulse 1s infinite;background:linear-gradient(135deg,#FF6B6B,#E74C3C);}
+@keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 6px 20px rgba(231,76,60,0.4);}50%{transform:scale(1.05);box-shadow:0 8px 30px rgba(231,76,60,0.6);}}
+.sr-list{background:rgba(255,255,255,0.4);border-radius:14px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.sr-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--green-deep);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;color:#fff;transition:all .2s;}
+.sr-check.checked{background:var(--green-deep);}
+.sr-content{flex:1;}
+.sr-en{font-size:13px;font-weight:700;}
+.sr-cn{font-size:11px;color:var(--text-light);margin-top:2px;}
+.sr-play{font-size:18px;cursor:pointer;color:var(--text-light);}
+
 /* ===== Toast ===== */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(90,74,90,0.9);backdrop-filter:blur(10px);color:#fff;padding:10px 24px;border-radius:14px;font-size:13px;z-index:300;opacity:0;transition:all .3s;white-space:nowrap;max-width:90vw;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
@@ -199,6 +225,7 @@ input:focus,textarea:focus{border-color:var(--pink);}
     <div class="nav-item active" data-view="plan"><span class="icon">📋</span>计划</div>
     <div class="nav-item" data-view="checkin"><span class="icon">✅</span>打卡</div>
     <div class="nav-item" data-view="video"><span class="icon">🎬</span>视频</div>
+    <div class="nav-item" data-view="shadow"><span class="icon">🎤</span>跟读</div>
     <div class="nav-item" data-view="word"><span class="icon">🎴</span>单词</div>
     <div class="nav-item" data-view="game"><span class="icon">🏁</span>对战</div>
     <div class="nav-item" data-view="reward"><span class="icon">🏆</span>奖励</div>
@@ -210,6 +237,11 @@ input:focus,textarea:focus{border-color:var(--pink);}
     <div class="view active" id="view-plan">
       <h1 class="page-title">📋 每日计划</h1>
       <p class="page-sub" id="plan-date-sub"></p>
+      <div class="card card-pink" style="background:linear-gradient(135deg,rgba(255,181,186,0.5),rgba(168,216,240,0.4));">
+        <div style="font-size:11px;color:var(--text-light);">📚 当前课文</div>
+        <div style="font-weight:800;font-size:16px;margin-top:4px;">Unit 1 · Show time!</div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">MM Publications · 第33课 人物描述</div>
+      </div>
       <div class="card card-pink">
         <div class="flex items-center justify-between" style="margin-bottom:12px;">
           <div style="font-weight:700;font-size:15px;">今日进度</div>
@@ -227,17 +259,21 @@ input:focus,textarea:focus{border-color:var(--pink);}
       <div id="plan-list"></div>
       <div id="add-plan-box" style="display:none;" class="card card-blue">
         <div class="flex gap-8">
-          <input type="text" id="plan-input" placeholder="比如：学3个新单词" onkeydown="if(event.key==='Enter')addPlan()">
+          <input type="text" id="plan-input" placeholder="比如：跟读He is a boy" onkeydown="if(event.key==='Enter')addPlan()">
           <select id="plan-type" style="width:auto;">
-            <option value="字母">🔤 字母</option><option value="单词">📖 单词</option><option value="数字">🔢 数字</option><option value="颜色">🎨 颜色</option><option value="儿歌">🎵 儿歌</option><option value="视频">🎬 视频</option>
+            <option value="听力">🎧 听力</option><option value="跟读">🗣️ 跟读</option><option value="认读">📖 认读</option><option value="书写">✍️ 书写</option><option value="录音">🎤 录音</option><option value="预习">🔮 预习</option>
           </select>
         </div>
         <div style="font-size:11px;color:var(--text-light);margin-top:8px;">
-          💡 快速添加：
-          <span style="color:var(--pink-deep);cursor:pointer;" onclick="quickAddPlan('学3个新单词','单词')">+学3个单词</span>
-          · <span style="color:var(--blue-deep);cursor:pointer;" onclick="quickAddPlan('看1个英语视频','视频')">+看1个视频</span>
-          · <span style="color:var(--green-deep);cursor:pointer;" onclick="quickAddPlan('练习ABC字母','字母')">+练字母</span>
-          · <span style="color:#C99B00;cursor:pointer;" onclick="quickAddPlan('玩1局汽车对战','儿歌')">+玩1局对战</span>
+          💡 教材作业模板：
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;">
+            <span class="tag tag-blue" style="cursor:pointer;" onclick="quickAddPlan('🎧 听CD pp.40-41(10分钟)','听力')">听CD</span>
+            <span class="tag tag-pink" style="cursor:pointer;" onclick="quickAddPlan('🗣️ 跟读pp.40-41句型','跟读')">跟读</span>
+            <span class="tag tag-green" style="cursor:pointer;" onclick="quickAddPlan('📖 认读单词boy/girl/sad','认读')">认读</span>
+            <span class="tag tag-yellow" style="cursor:pointer;" onclick="quickAddPlan('✍️ 写练习册pp.29-30','书写')">书写</span>
+            <span class="tag tag-blue" style="cursor:pointer;" onclick="quickAddPlan('🎤 微信录音发句型','录音')">录音</span>
+            <span class="tag tag-pink" style="cursor:pointer;" onclick="quickAddPlan('🔮 预习pp.42-43(15分钟)','预习')">预习</span>
+          </div>
         </div>
         <div class="flex gap-8" style="margin-top:8px;">
           <button class="btn btn-sm flex-1" onclick="addPlan()">添加</button>
@@ -262,7 +298,67 @@ input:focus,textarea:focus{border-color:var(--pink);}
       </div>
     </div>
 
-    <!-- ===== 3. 视频学习 ===== -->
+    <!-- ===== 3. 跟读练习 ===== -->
+    <div class="view" id="view-shadow">
+      <h1 class="page-title">🎤 跟读练习</h1>
+      <p class="page-sub">听老师读，小朋友跟着读 · 每天10分钟</p>
+
+      <div class="shadow-card">
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">📚 Unit 1 · Show time!</div>
+        <div class="sentence-en" id="shadow-en">He is a boy.</div>
+        <div class="sentence-zh" id="shadow-zh">他是个男孩。</div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:8px;">
+          🐢 慢速 · 单词每个停顿 · <span id="shadow-rate">0.7</span>x
+        </div>
+        <div class="flex gap-8" style="justify-content:center;margin-top:8px;">
+          <button class="btn btn-sm" onclick="shadowSlowPlay()">🐢 慢速跟读</button>
+          <button class="btn btn-sm btn-green" onclick="shadowNormalPlay()">▶ 正常播放</button>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="record-btn" id="record-btn" onclick="toggleRecord()">🎤</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:8px;" id="record-status">点上面录制自己的声音</div>
+      </div>
+
+      <div class="card card-yellow">
+        <div style="font-weight:700;font-size:14px;margin-bottom:8px;">📝 三步跟读法</div>
+        <div class="shadow-step" onclick="playStep(1)">
+          <div class="shadow-num s1">1</div>
+          <div class="shadow-info">
+            <div class="shadow-info-t">听（Listen）</div>
+            <div class="shadow-info-s">先听外教读，跟着节奏</div>
+          </div>
+          <div class="shadow-arrow">▶</div>
+        </div>
+        <div class="shadow-step" onclick="playStep(2)">
+          <div class="shadow-num s2">2</div>
+          <div class="shadow-info">
+            <div class="shadow-info-t">跟（Repeat）</div>
+            <div class="shadow-info-s">跟着外教一起读，模仿语调</div>
+          </div>
+          <div class="shadow-arrow">▶</div>
+        </div>
+        <div class="shadow-step" onclick="playStep(3)">
+          <div class="shadow-num s3">3</div>
+          <div class="shadow-info">
+            <div class="shadow-info-t">录（Record）</div>
+            <div class="shadow-info-s">自己说一遍，发微信给老师</div>
+          </div>
+          <div class="shadow-arrow">▶</div>
+        </div>
+      </div>
+
+      <div class="card card-blue">
+        <div style="font-weight:700;font-size:14px;margin-bottom:8px;">📚 本课全部句子</div>
+        <div id="shadow-list"></div>
+        <div class="flex gap-8" style="margin-top:12px;">
+          <button class="btn btn-sm flex-1" onclick="playAllSentences()" style="background:linear-gradient(135deg,var(--blue),var(--blue-deep));">▶ 连续播放</button>
+          <button class="btn btn-sm flex-1 btn-green" onclick="markShadowDone()">✓ 今日跟读完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 4. 视频学习 ===== -->
     <div class="view" id="view-video">
       <h1 class="page-title">🎬 视频学习</h1>
       <p class="page-sub">看视频，涨知识</p>
@@ -276,7 +372,7 @@ input:focus,textarea:focus{border-color:var(--pink);}
       <div id="video-list"></div>
     </div>
 
-    <!-- ===== 4. 单词卡片 ===== -->
+    <!-- ===== 5. 单词卡片 ===== -->
     <div class="view" id="view-word">
       <h1 class="page-title">🎴 单词卡片</h1>
       <p class="page-sub" id="word-counter">点击卡片翻面 · 1/10</p>
@@ -306,7 +402,7 @@ input:focus,textarea:focus{border-color:var(--pink);}
       </div>
     </div>
 
-    <!-- ===== 5. 汽车碰撞游戏 ===== -->
+    <!-- ===== 6. 汽车碰撞游戏 ===== -->
     <div class="view" id="view-game">
       <h1 class="page-title">🏁 汽车对战学英语</h1>
       <p class="page-sub">答对加速撞飞对手 · 赢取酷炫跑车！</p>
@@ -350,7 +446,7 @@ input:focus,textarea:focus{border-color:var(--pink);}
       </div>
     </div>
 
-    <!-- ===== 6. 奖励车库 ===== -->
+    <!-- ===== 7. 奖励车库 ===== -->
     <div class="view" id="view-reward">
       <h1 class="page-title">🏆 我的车库</h1>
       <p class="page-sub">越赢越酷，收集梦想跑车！</p>
@@ -392,7 +488,7 @@ input:focus,textarea:focus{border-color:var(--pink);}
 <script>
 // ===== 数据层 =====
 const Store = {
-  K:'pvz_eng_v3', // v3版本号，每次数据结构变更改这里强制刷新
+  K:'pvz_eng_v4', // v4升级：教材对接+跟读模块
   load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},
   save(d){localStorage.setItem(this.K,JSON.stringify(d));},
   get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},
@@ -404,36 +500,49 @@ Store.set('checkins',Store.get('checkins',[]));
 Store.set('streak',Store.get('streak',0));
 Store.set('lastCheckin',Store.get('lastCheckin',''));
 Store.set('videos',Store.get('videos',[
-  {id:'v1',title:'🔤 ABC字母歌 - 学唱26个字母',emoji:'🔤',url:'https://player.bilibili.com/player.html?bvid=BV1Bb411c7pH&page=1&high_quality=1&autoplay=0',progress:0,done:false},
-  {id:'v2',title:'🎨 颜色英语儿歌 Color Songs',emoji:'🎨',url:'https://player.bilibili.com/player.html?bvid=BV1Lr4y1q7dd&page=1&high_quality=1&autoplay=0',progress:0,done:false},
-  {id:'v3',title:'🔢 自然拼读字母儿歌合集',emoji:'🔢',url:'https://player.bilibili.com/player.html?bvid=BV1ZPdLYDEiM&page=1&high_quality=1&autoplay=0',progress:0,done:false},
-  {id:'v4',title:'🐾 动物ABC英语儿歌',emoji:'🐾',url:'https://player.bilibili.com/player.html?bvid=BV1Bb411c7pH&page=1&high_quality=1&autoplay=0',progress:0,done:false},
-  {id:'v5',title:'👋 趣味英语启蒙儿歌',emoji:'👋',url:'https://player.bilibili.com/player.html?bvid=BV1Lr4y1q7dd&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v1',title:'🔤 Who is He? Who is She? 区分男女',emoji:'👨‍👩‍👧',url:'https://player.bilibili.com/player.html?bvid=BV1Et411V7Sv&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v2',title:'😊 Happy Sad 情绪启蒙歌',emoji:'😊',url:'https://player.bilibili.com/player.html?bvid=BV1zeTv6HE2S&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v3',title:'📏 Tall and Short 高矮比较',emoji:'📏',url:'https://player.bilibili.com/player.html?bvid=BV1udZvYvEXp&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v4',title:'😢 Khan Academy Kids 情绪英语',emoji:'😢',url:'https://player.bilibili.com/player.html?bvid=BV1udZvYvEXp&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v5',title:'👶 Didi狗的一天启蒙动画',emoji:'👶',url:'https://player.bilibili.com/player.html?bvid=BV1Ge3K6eEFn&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v6',title:'🎵 Baby Happy Baby Sad 0-3岁启蒙',emoji:'👶',url:'https://player.bilibili.com/player.html?bvid=BV1QEJ9zBEyy&page=1&high_quality=1&autoplay=0',progress:0,done:false},
 ]));
 Store.set('wordIdx',Store.get('wordIdx',0));
 Store.set('knownWords',Store.get('knownWords',[]));
 Store.set('gameWins',Store.get('gameWins',0));
-Store.set('currentCar',Store.get('currentCar',0));
+Store.set('currentUnit',Store.get('currentUnit','unit1'));
+Store.set('shadowIdx',Store.get('shadowIdx',0));
+Store.set('shadowProgress',Store.get('shadowProgress',{}));
 Store.set('unlockedCars',Store.get('unlockedCars',[0]));
 
-// ===== 词库（6岁零基础 · 第一周） =====
+// ===== 跟读课文数据（MM Publications Unit 1） =====
+const SHADOW_SENTENCES = [
+  {en:'He is a boy.',zh:'他是个男孩。',emoji:'👦'},
+  {en:'She is a girl.',zh:'她是个女孩。',emoji:'👧'},
+  {en:'He is tall.',zh:'他很高。',emoji:'📏'},
+  {en:'She is short.',zh:'她很矮。',emoji:'📐'},
+  {en:'He is happy.',zh:'他很开心。',emoji:'😄'},
+  {en:'She is sad.',zh:'她很伤心。',emoji:'😢'},
+  {en:'Is she sad?',zh:'她伤心吗？',emoji:'❓'},
+  {en:'Yes, she is.',zh:'是的，她是。',emoji:'✅'},
+  {en:'Is he happy?',zh:'他开心吗？',emoji:'❓'},
+  {en:'No, he is not. (No, he isn\'t.)',zh:'不，他不是。',emoji:'✅'},
+];
+
+// ===== 词库（MM Publications · 第33课 人物描述） =====
 const WORDS = [
-  {en:'A a',ph:'/eɪ/',zh:'字母Aa',ex:'A is for Apple 🍎',emoji:'🍎'},
-  {en:'B b',ph:'/biː/',zh:'字母Bb',ex:'B is for Boy 👦',emoji:'👦'},
-  {en:'C c',ph:'/siː/',zh:'字母Cc',ex:'C is for Cat 🐱',emoji:'🐱'},
-  {en:'one',ph:'/wʌn/',zh:'数字1',ex:'I have one 🍎',emoji:'1️⃣'},
-  {en:'two',ph:'/tuː/',zh:'数字2',ex:'I have two ✏️',emoji:'2️⃣'},
-  {en:'three',ph:'/θriː/',zh:'数字3',ex:'Three 🎈',emoji:'3️⃣'},
-  {en:'cat',ph:'/kæt/',zh:'猫咪',ex:'I see a cat 🐱',emoji:'🐱'},
-  {en:'dog',ph:'/dɒɡ/',zh:'小狗',ex:'The dog is happy 🐶',emoji:'🐶'},
-  {en:'red',ph:'/red/',zh:'红色',ex:'Apple is red 🔴',emoji:'🔴'},
-  {en:'blue',ph:'/bluː/',zh:'蓝色',ex:'Sky is blue 🔵',emoji:'🔵'},
-  {en:'yellow',ph:'/ˈjeloʊ/',zh:'黄色',ex:'Sun is yellow 🟡',emoji:'🟡'},
-  {en:'apple',ph:'/ˈæpəl/',zh:'苹果',ex:'I like apple 🍎',emoji:'🍎'},
-  {en:'milk',ph:'/mɪlk/',zh:'牛奶',ex:'I drink milk 🥛',emoji:'🥛'},
-  {en:'mom',ph:'/mɒm/',zh:'妈妈',ex:'I love mom ❤️',emoji:'👩'},
-  {en:'dad',ph:'/dæd/',zh:'爸爸',ex:'I love dad ❤️',emoji:'👨'},
-  {en:'hi',ph:'/haɪ/',zh:'你好',ex:'Hi! Hello! 👋',emoji:'👋'},
+  {en:'boy',ph:'/bɔɪ/',zh:'男孩 👦',ex:'He is a boy.',emoji:'👦'},
+  {en:'girl',ph:'/ɡɜːrl/',zh:'女孩 👧',ex:'She is a girl.',emoji:'👧'},
+  {en:'tall',ph:'/tɔːl/',zh:'高的 📏',ex:'He is tall.',emoji:'📏'},
+  {en:'short',ph:'/ʃɔːrt/',zh:'矮的 📐',ex:'She is short.',emoji:'📐'},
+  {en:'happy',ph:'/ˈhæpi/',zh:'开心 😄',ex:'He is happy.',emoji:'😄'},
+  {en:'sad',ph:'/sæd/',zh:'伤心 😢',ex:'She is sad.',emoji:'😢'},
+  {en:'man',ph:'/mæn/',zh:'男人 👨',ex:'He is a man.',emoji:'👨'},
+  {en:'woman',ph:'/ˈwʊmən/',zh:'女人 👩',ex:'She is a woman.',emoji:'👩'},
+  {en:'He',ph:'/hiː/',zh:'他（主格）',ex:'He is a boy.',emoji:'👨'},
+  {en:'She',ph:'/ʃiː/',zh:'她（主格）',ex:'She is a girl.',emoji:'👩'},
+  {en:'his',ph:'/hɪz/',zh:'他的',ex:'This is his book.',emoji:'📕'},
+  {en:'her',ph:'/hɜːr/',zh:'她的',ex:'This is her book.',emoji:'📗'},
 ];
 
 // ===== 车型库（6岁友好 · 解锁门槛低） =====
@@ -446,32 +555,40 @@ const CARS = [
   {name:'宇宙飞车',emoji:'🛸',wins:40},
 ];
 
-// ===== 游戏题库（6岁零基础 · 3选项 · 超简单） =====
+// ===== 游戏题库（MM Publications · 第33课情境） =====
 const QUESTIONS = [
-  {q:'🐱 cat 是什么意思？',opts:['猫','狗','鸟'],ans:0},
-  {q:'🐶 dog 是什么意思？',opts:['猫','狗','鱼'],ans:1},
-  {q:'🔴 red 是什么意思？',opts:['蓝色','红色','黄色'],ans:1},
-  {q:'🔵 blue 是什么意思？',opts:['蓝色','红色','绿色'],ans:0},
-  {q:'🟡 yellow 是什么意思？',opts:['黄色','红色','蓝色'],ans:0},
-  {q:'🍎 apple 是什么意思？',opts:['香蕉','苹果','葡萄'],ans:1},
-  {q:'1️⃣ one 是什么意思？',opts:['2','1','3'],ans:1},
-  {q:'2️⃣ two 是什么意思？',opts:['2','1','3'],ans:0},
-  {q:'3️⃣ three 是什么意思？',opts:['2','1','3'],ans:2},
-  {q:'🥛 milk 是什么意思？',opts:['水','果汁','牛奶'],ans:2},
-  {q:'👋 hi 是什么意思？',opts:['再见','你好','谢谢'],ans:1},
-  {q:'👩 mom 是什么意思？',opts:['妈妈','爸爸','姐姐'],ans:0},
-  {q:'👨 dad 是什么意思？',opts:['妈妈','爸爸','哥哥'],ans:1},
-  {q:'🔴 "红色"用英语怎么说？',opts:['red','blue','yellow'],ans:0},
-  {q:'🔵 "蓝色"用英语怎么说？',opts:['red','blue','yellow'],ans:1},
-  {q:'🟡 "黄色"用英语怎么说？',opts:['yellow','red','blue'],ans:0},
-  {q:'🐱 "猫"用英语怎么说？',opts:['dog','cat','bird'],ans:1},
-  {q:'🐶 "狗"用英语怎么说？',opts:['cat','dog','fish'],ans:1},
-  {q:'🍎 "苹果"用英语怎么说？',opts:['banana','apple','grape'],ans:1},
-  {q:'🥛 "牛奶"用英语怎么说？',opts:['water','juice','milk'],ans:2},
-  {q:'1️⃣ "1"用英语怎么说？',opts:['one','two','three'],ans:0},
-  {q:'2️⃣ "2"用英语怎么说？',opts:['one','two','three'],ans:1},
-  {q:'3️⃣ "3"用英语怎么说？',opts:['one','two','three'],ans:2},
-  {q:'👋 "你好"用英语怎么说？',opts:['hi','bye','yes'],ans:0},
+  // 句型理解
+  {q:'"He is a boy." 怎么翻译？',opts:['他是个男孩','她是个女孩','我是男孩'],ans:0},
+  {q:'"She is a girl." 怎么翻译？',opts:['他是个男人','她是个女孩','她是男孩'],ans:1},
+  {q:'"He is tall." 怎么翻译？',opts:['他很矮','他很高','她很高'],ans:1},
+  {q:'"She is short." 怎么翻译？',opts:['她很矮','她很高','他很矮'],ans:0},
+  {q:'"He is happy." 怎么翻译？',opts:['他很伤心','他很开心','她很开心'],ans:1},
+  {q:'"She is sad." 怎么翻译？',opts:['她很伤心','她很开心','他很伤心'],ans:0},
+
+  // 中文 → 英文
+  {q:'"他是个男孩" 用英语说？',opts:['He is a boy.','She is a boy.','He is a girl.'],ans:0},
+  {q:'"她是个女孩" 用英语说？',opts:['He is a girl.','She is a girl.','She is a boy.'],ans:1},
+  {q:'"他很高" 用英语说？',opts:['He is short.','She is tall.','He is tall.'],ans:2},
+  {q:'"她很矮" 用英语说？',opts:['She is short.','She is tall.','He is short.'],ans:0},
+  {q:'"他很开心" 用英语说？',opts:['He is sad.','He is happy.','She is happy.'],ans:1},
+  {q:'"她很伤心" 用英语说？',opts:['She is sad.','She is happy.','He is sad.'],ans:0},
+
+  // 看图识词
+  {q:'👦 这个单词怎么读？',opts:['girl','boy','man'],ans:1},
+  {q:'👧 这个单词怎么读？',opts:['boy','woman','girl'],ans:2},
+  {q:'😄 这个单词怎么读？',opts:['sad','happy','angry'],ans:1},
+  {q:'😢 这个单词怎么读？',opts:['happy','sad','tired'],ans:1},
+
+  // 选词填空（教材Show time）
+  {q:'He is a ___. (boy/girl)',opts:['girl','boy','man'],ans:1},
+  {q:'She is a ___. (boy/girl)',opts:['girl','boy','woman'],ans:0},
+  {q:'He is ___. (tall/short) 📏',opts:['short','tall','happy'],ans:1},
+  {q:'She is ___. (tall/short) 📐',opts:['short','tall','sad'],ans:0},
+
+  // Is she sad? Yes/No 问答
+  {q:'"Is she sad?" 肯定回答？',opts:['Yes, she is.','No, she isn\'t.','Yes, I am.'],ans:0},
+  {q:'"Is she happy?" 否定回答？',opts:['Yes, she is.','No, she isn\'t.','No, I don\'t.'],ans:1},
+  {q:'"isn\'t" 是什么意思？',opts:['是','不是','有没有'],ans:1},
 ];
 
 // ===== 导航 =====
@@ -486,6 +603,7 @@ document.querySelectorAll('.nav-item').forEach(item=>{
     if(v==='plan')renderPlans();
     if(v==='checkin')renderCheckin();
     if(v==='video')renderVideos();
+    if(v==='shadow')renderShadow();
     if(v==='word')renderWord();
     if(v==='game')updateGameStats();
     if(v==='reward')renderGarage();
@@ -538,7 +656,7 @@ function renderPlans(){
   if(!plans.length){
     html=`<div class="empty"><span class="emoji">📝</span>今天还没有学习计划<br>点击上方"添加任务"开始吧！</div>`;
   }else{
-    const typeColors={'字母':'tag-pink','单词':'tag-blue','数字':'tag-green','颜色':'tag-yellow','儿歌':'tag-pink','视频':'tag-blue','语法':'tag-blue','听力':'tag-green','阅读':'tag-yellow','口语':'tag-pink'};
+    const typeColors={'听力':'tag-blue','跟读':'tag-pink','认读':'tag-green','书写':'tag-yellow','录音':'tag-blue','预习':'tag-pink','字母':'tag-pink','单词':'tag-blue','数字':'tag-green','颜色':'tag-yellow','儿歌':'tag-pink','视频':'tag-blue','语法':'tag-blue','听力旧':'tag-green','阅读':'tag-yellow','口语':'tag-pink'};
     plans.forEach(p=>{
       html+=`<div class="plan-item ${p.done?'done':''}">
         <div class="plan-check ${p.done?'checked':''}" onclick="togglePlan(${p.id})">${p.done?'✓':''}</div>
@@ -670,6 +788,143 @@ function renderVideos(){
     });
   }
   document.getElementById('video-list').innerHTML=html;
+}
+
+// ===== 3. 跟读练习 =====
+let isRecording=false;
+let mediaRecorder=null;
+let audioChunks=[];
+function shadowSpeak(text,rate){
+  if(!window.speechSynthesis){toast('浏览器不支持语音合成');return;}
+  window.speechSynthesis.cancel();
+  let u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';
+  u.rate=rate||0.7;
+  u.pitch=1.1;
+  // 优先选女声
+  let voices=window.speechSynthesis.getVoices();
+  let female=voices.find(v=>/female|samantha|victoria|karen|google.*us.*female/i.test(v.name));
+  if(female)u.voice=female;
+  window.speechSynthesis.speak(u);
+}
+function shadowSlowPlay(){
+  let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;
+  let s=SHADOW_SENTENCES[idx];
+  document.getElementById('shadow-rate').textContent='0.6';
+  shadowSpeak(s.en,0.6);
+  toast('🐢 慢速跟读：'+s.en);
+}
+function shadowNormalPlay(){
+  let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;
+  let s=SHADOW_SENTENCES[idx];
+  document.getElementById('shadow-rate').textContent='1.0';
+  shadowSpeak(s.en,1.0);
+  toast('▶ 正常播放：'+s.en);
+}
+function playStep(n){
+  let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;
+  let s=SHADOW_SENTENCES[idx];
+  if(n===1){shadowSpeak(s.en,0.5);toast('👂 仔细听老师怎么读');}
+  else if(n===2){
+    shadowSpeak(s.en,0.7);
+    setTimeout(()=>{try{shadowSpeak(s.en,0.9);}catch(e){}},2500);
+    toast('🗣️ 跟着老师一起读两遍');
+  }
+  else if(n===3){startRecord();}
+}
+function playAllSentences(){
+  if(!window.speechSynthesis){return;}
+  window.speechSynthesis.cancel();
+  let i=0;
+  function playNext(){
+    if(i>=SHADOW_SENTENCES.length){return;}
+    let s=SHADOW_SENTENCES[i];
+    shadowSpeak(s.en,0.6);
+    setTimeout(playNext,4000);
+    i++;
+  }
+  playNext();
+  toast('🔁 连续播放全部句型');
+}
+async function toggleRecord(){
+  if(isRecording){stopRecord();return;}
+  await startRecord();
+}
+async function startRecord(){
+  try{
+    let stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRecorder=new MediaRecorder(stream);
+    audioChunks=[];
+    mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+    mediaRecorder.onstop=()=>{
+      let blob=new Blob(audioChunks,{type:'audio/webm'});
+      let url=URL.createObjectURL(blob);
+      let a=document.createElement('a');
+      a.href=url;
+      let idx=Store.get('shadowIdx',0);
+      a.download=`shadow-unit1-${idx+1}-${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('🎉 录音已保存！请发微信给老师');
+      // 标记为已完成
+      let progress=Store.get('shadowProgress',{});
+      progress[idx]=(progress[idx]||0)+1;
+      Store.set('shadowProgress',progress);
+      isRecording=false;
+      document.getElementById('record-btn').classList.remove('recording');
+      document.getElementById('record-status').textContent='✅ 录音已保存，点此重录';
+      renderShadow();
+    };
+    mediaRecorder.start();
+    isRecording=true;
+    document.getElementById('record-btn').classList.add('recording');
+    document.getElementById('record-status').textContent='🔴 正在录音...再点一下停止';
+  }catch(e){
+    toast('🎤 请授权麦克风权限');
+  }
+}
+function stopRecord(){
+  if(mediaRecorder&&mediaRecorder.state!=='inactive'){mediaRecorder.stop();}
+}
+function markShadowDone(){
+  let idx=Store.get('shadowIdx',0);
+  let progress=Store.get('shadowProgress',{});
+  progress[idx]=(progress[idx]||0)+1;
+  Store.set('shadowProgress',progress);
+  // 自动跳到下一句
+  let nextIdx=(idx+1)%SHADOW_SENTENCES.length;
+  Store.set('shadowIdx',nextIdx);
+  toast('🎉 已标记完成，下一句：'+SHADOW_SENTENCES[nextIdx].en);
+  renderShadow();
+}
+function renderShadow(){
+  let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;
+  let s=SHADOW_SENTENCES[idx];
+  document.getElementById('shadow-en').textContent=s.en;
+  document.getElementById('shadow-zh').textContent=s.emoji+' '+s.zh;
+  let progress=Store.get('shadowProgress',{});
+  document.getElementById('record-status').textContent=`点上面录制，下一句：${SHADOW_SENTENCES[idx+1<SHADOW_SENTENCES.length?idx+1:0].en}`;
+  let html='';
+  SHADOW_SENTENCES.forEach((s,i)=>{
+    let p=progress[i]||0;
+    let isCurrent=i===idx;
+    html+=`<div class="sr-list ${isCurrent?'shadow-card':''}" style="${isCurrent?'background:linear-gradient(135deg,rgba(168,216,240,0.5),rgba(184,230,200,0.5));':''}">
+      <div class="sr-check ${p>0?'checked':''}" onclick="toggleShadowDone(${i})">${p>0?'✓':''}</div>
+      <div class="sr-content">
+        <div class="sr-en">${s.emoji} ${s.en}</div>
+        <div class="sr-cn">${s.zh} ${p>0?'· ✅ 练习'+p+'次':''}</div>
+      </div>
+      <div class="sr-play" onclick="shadowSpeak('${s.en.replace(/'/g,"\\'")}',0.7)">▶</div>
+    </div>`;
+  });
+  document.getElementById('shadow-list').innerHTML=html;
+}
+function toggleShadowDone(i){
+  let progress=Store.get('shadowProgress',{});
+  if(progress[i]){delete progress[i];toast('已取消');}
+  else{progress[i]=1;toast('✅ 已标记');}
+  Store.set('shadowProgress',progress);
+  renderShadow();
 }
 
 // ===== 4. 单词卡片 =====
