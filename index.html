@@ -264,11 +264,29 @@ input:focus{border-color:var(--pink);}
       <div class="card card-pink">
         <div class="flex items-center justify-between" style="margin-bottom:12px;">
           <div style="font-weight:700;font-size:15px;">今日进度</div>
-          <button class="btn btn-sm" onclick="showAddPlan()">+ 添加任务</button>
+          <button class="btn btn-sm" onclick="showAddPlan()">+ 自定义任务</button>
         </div>
         <div class="progress-ring">
           <svg width="90" height="90"><defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FF8A95"/><stop offset="100%" stop-color="#B083D5"/></linearGradient></defs><circle class="bg" cx="45" cy="45" r="40"/><circle class="fg" cx="45" cy="45" r="40" id="progress-fg"/></svg>
           <div class="label"><div class="pct" id="progress-pct">0%</div><div class="txt">完成率</div></div>
+        </div>
+      </div>
+
+      <!-- 每日任务清单 -->
+      <div class="card card-yellow">
+        <div class="flex items-center justify-between" style="margin-bottom:10px;">
+          <div style="font-weight:700;font-size:15px;">🎯 每日6项任务</div>
+          <span class="tag tag-yellow" id="daily-task-count">0/6</span>
+        </div>
+        <div id="daily-tasks"></div>
+        <div id="daily-reward-box" style="margin-top:12px;padding:14px;border-radius:14px;background:linear-gradient(135deg,rgba(255,229,160,0.4),rgba(255,181,186,0.3));text-align:center;display:none;">
+          <div style="font-size:36px;margin-bottom:6px;" id="daily-reward-emoji">🎁</div>
+          <div style="font-size:14px;font-weight:800;margin-bottom:4px;" id="daily-reward-title">全部完成！</div>
+          <div style="font-size:12px;color:var(--text-light);margin-bottom:10px;" id="daily-reward-desc">点击领取今日宝箱奖励！</div>
+          <button class="btn btn-sm btn-yellow" id="daily-claim-btn" onclick="claimDailyReward()">🎁 领取宝箱</button>
+        </div>
+        <div id="daily-claimed-tip" style="display:none;margin-top:10px;text-align:center;font-size:12px;color:var(--green-deep);font-weight:600;">
+          ✅ 今日宝箱已领取，明天继续加油！
         </div>
       </div>
       <div id="plan-list"></div>
@@ -473,7 +491,7 @@ input:focus{border-color:var(--pink);}
 
 <script>
 // ===== 数据层 =====
-const Store={K:'pvz_eng_v7',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
+const Store={K:'pvz_eng_v8',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
 Store.set('plans',Store.get('plans',[]));
 Store.set('checkins',Store.get('checkins',[]));
 Store.set('streak',Store.get('streak',0));
@@ -768,14 +786,116 @@ function quickAddPlan(title,type){let all=Store.get('plans',[]);all.push({id:Dat
 function addPlan(){let val=document.getElementById('plan-input').value.trim();if(!val)return;let type=document.getElementById('plan-type').value;let all=Store.get('plans',[]);all.push({id:Date.now(),title:val,type,date:todayKey(),done:false});Store.set('plans',all);hideAddPlan();renderPlans();toast('✅ 任务已添加');}
 function togglePlan(id){let all=Store.get('plans',[]);let p=all.find(x=>x.id===id);if(p){p.done=!p.done;if(p.done){addXP(5);addCoins(2);toast('🎉 +5 XP +2🪙');}}Store.set('plans',all);renderPlans();checkBadgeUnlocks();}
 function delPlan(id){Store.set('plans',Store.get('plans',[]).filter(x=>x.id!==id));renderPlans();}
-function renderPlans(){
-  let plans=getTodayPlans();let d=new Date();
-  document.getElementById('plan-date-sub').textContent=`📅 ${d.getMonth()+1}月${d.getDate()}日 · 共${plans.length}个任务`;
-  let done=plans.filter(p=>p.done).length;let pct=plans.length?Math.round(done/plans.length*100):0;
+// ===== 1b. 每日固定任务 =====
+const DAILY_TASKS=[
+  {id:'d1',icon:'✅',title:'每日打卡',desc:'点打卡按钮',target:'checkin',xp:10,coins:5},
+  {id:'d2',icon:'🎤',title:'跟读3句话',desc:'在跟读模块练习3句',target:'shadow3',xp:15,coins:8},
+  {id:'d3',icon:'🎴',title:'学习5个单词',desc:'翻看5张单词卡',target:'word5',xp:15,coins:8},
+  {id:'d4',icon:'🎬',title:'看1个学习视频',desc:'看并标记完成',target:'video1',xp:10,coins:5},
+  {id:'d5',icon:'🏁',title:'玩1局汽车对战',desc:'完成1局游戏',target:'game1',xp:15,coins:10},
+  {id:'d6',icon:'📖',title:'完成教材作业',desc:'听CD/写练习册/录音',target:'homework',xp:20,coins:12},
+];
+function getDailyTaskStatus(){
+  let today=todayKey();
+  let dt=Store.get('dailyTasks',{});
+  if(!dt[today]){dt[today]={claimed:false};Store.set('dailyTasks',dt);}
+  let progress=dt[today]||{claimed:false};
+  // 检测各任务完成状态
+  let checkins=Store.get('checkins',[]);
+  let shadowP=Store.get('shadowProgress',{});
+  let knownWords=Store.get('knownWords',[]);
+  let videos=Store.get('videos',[]);
+  let gameWins=Store.get('gameWins',0);
+  let customPlans=getTodayPlans();
+  let results={
+    d1:checkins.includes(today),
+    d2:Object.keys(shadowP).filter(k=>{let dt2=Store.get('dailyTasks',{})[today]||{};return true;}).length>=3||Object.values(shadowP).reduce((a,b)=>a+b,0)>=3,
+    d3:knownWords.length>=5,
+    d4:videos.some(v=>v.done),
+    d5:gameWins>=1,
+    d6:customPlans.length>0&&customPlans.every(p=>p.done),
+  };
+  // 更精确的每日统计
+  let todayShadow=Store.get('todayShadow',{date:'',count:0});
+  if(todayShadow.date!==today){todayShadow={date:today,count:0};Store.set('todayShadow',todayShadow);}
+  results.d2=todayShadow.count>=3;
+  let todayGame=Store.get('todayGame',{date:'',count:0});
+  if(todayGame.date!==today){todayGame={date:today,count:0};Store.set('todayGame',todayGame);}
+  results.d5=todayGame.count>=1;
+  let todayVideo=Store.get('todayVideo',{date:'',count:0});
+  if(todayVideo.date!==today){todayVideo={date:today,count:0};Store.set('todayVideo',todayVideo);}
+  results.d4=todayVideo.count>=1;
+  return{results,claimed:progress.claimed};
+}
+function renderDailyTasks(){
+  let{results,claimed}=getDailyTaskStatus();
+  let doneCount=Object.values(results).filter(v=>v).length;
+  document.getElementById('daily-task-count').textContent=`${doneCount}/6`;
+  // 更新进度环
+  let pct=Math.round(doneCount/6*100);
   document.getElementById('progress-pct').textContent=pct+'%';
   document.getElementById('progress-fg').style.strokeDashoffset=254-(254*pct/100);
+  let html='';
+  DAILY_TASKS.forEach(t=>{
+    let isDone=results[t.id];
+    html+=`<div class="plan-item ${isDone?'done':''}">
+      <div class="plan-check ${isDone?'checked':''}">${isDone?'✓':''}</div>
+      <div style="font-size:22px;flex-shrink:0;">${t.icon}</div>
+      <div class="plan-content"><div class="plan-title">${t.title}</div><div class="plan-meta">${t.desc} · +${t.xp}XP +${t.coins}🪙</div></div>
+    </div>`;
+  });
+  document.getElementById('daily-tasks').innerHTML=html;
+  // 全部完成显示宝箱
+  let allDone=doneCount===6;
+  if(allDone&&!claimed){
+    document.getElementById('daily-reward-box').style.display='block';
+    document.getElementById('daily-reward-emoji').textContent='🎁';
+    document.getElementById('daily-reward-title').textContent='全部完成！可以开宝箱啦！';
+    document.getElementById('daily-reward-desc').textContent='点击领取今日宝箱（随机车/宠物/皮肤+50金币+30XP）';
+    document.getElementById('daily-claim-btn').style.display='block';
+    document.getElementById('daily-claimed-tip').style.display='none';
+  }else if(allDone&&claimed){
+    document.getElementById('daily-reward-box').style.display='none';
+    document.getElementById('daily-claimed-tip').style.display='block';
+  }else{
+    document.getElementById('daily-reward-box').style.display='none';
+    document.getElementById('daily-claimed-tip').style.display='none';
+  }
+}
+function claimDailyReward(){
+  let today=todayKey();
+  let dt=Store.get('dailyTasks',{});
+  let progress=dt[today]||{claimed:false};
+  if(progress.claimed){toast('今天已经领过了！');return;}
+  progress.claimed=true;dt[today]=progress;Store.set('dailyTasks',dt);
+  // 奖励：50金币+30XP
+  addCoins(50);addXP(30);
+  // 随机给一个收集品
+  let types=['cars','pets','skins'];
+  let type=types[Math.floor(Math.random()*types.length)];
+  let pool=COLLECT_DB[type];
+  let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]});
+  let locked=pool.map((item,i)=>({item,i})).filter(({item,i})=>!unlocked[type].includes(i));
+  let target=locked.length?locked[Math.floor(Math.random()*locked.length)]:null;
+  if(target){
+    unlocked[type].push(target.i);Store.set('unlocked',unlocked);
+    let rarityNames={common:'普通',rare:'稀有',epic:'史诗',legend:'传说'};
+    toast(`🎉 宝箱开出：${target.item.emoji} ${target.item.name} (${rarityNames[target.item.rarity]}) +50🪙 +30XP`);
+    fxStars(window.innerWidth/2,window.innerHeight/2,20);
+  }else{
+    addCoins(30);
+    toast(`🎉 宝箱开出：+80🪙 +30XP（收集品已全拥有）`);
+    fxStars(window.innerWidth/2,window.innerHeight/2,15);
+  }
+  checkBadgeUnlocks();
+  renderDailyTasks();
+}
+function renderPlans(){
+  renderDailyTasks();
+  let plans=getTodayPlans();let d=new Date();
+  document.getElementById('plan-date-sub').textContent=`📅 ${d.getMonth()+1}月${d.getDate()}日 · ${['日','一','二','三','四','五','六'][d.getDay()]}`;
   const typeColors={'听力':'tag-blue','跟读':'tag-pink','认读':'tag-green','书写':'tag-yellow','录音':'tag-blue','预习':'tag-pink'};
-  let html=plans.length?'':`<div class="empty"><span class="emoji">📝</span>今天还没有学习计划<br>点击"添加任务"开始吧！</div>`;
+  let html=plans.length?'':`<div class="card card-blue" style="text-align:center;font-size:12px;color:var(--text-light);">📌 上方是每日固定任务（每天自动生成）<br>下方可以添加自己的额外任务</div>`;
   plans.forEach(p=>{html+=`<div class="plan-item ${p.done?'done':''}"><div class="plan-check ${p.done?'checked':''}" onclick="togglePlan(${p.id})">${p.done?'✓':''}</div><div class="plan-content"><div class="plan-title">${p.title}</div><div class="plan-meta"><span class="tag ${typeColors[p.type]||'tag-blue'}">${p.type}</span></div></div><div class="plan-del" onclick="delPlan(${p.id})">×</div></div>`;});
   document.getElementById('plan-list').innerHTML=html;
 }
@@ -813,7 +933,7 @@ function renderCheckin(){
 function addVideo(){let url=document.getElementById('video-url').value.trim();if(!url)return;let embedUrl=url,title='学习视频';if(url.includes('bilibili.com')){let bvid='';if(url.includes('bvid='))bvid=url.split('bvid=')[1].split('&')[0];else if(url.match(/BV\w+/))bvid=url.match(/BV\w+/)[0];embedUrl=`https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&autoplay=0`;title='B站视频';}else if(url.includes('youtube.com/watch?v=')){embedUrl=`https://www.youtube.com/embed/${url.split('v=')[1].split('&')[0]}`;title='YouTube视频';}else if(url.includes('youtu.be/')){embedUrl=`https://www.youtube.com/embed/${url.split('youtu.be/')[1].split('?')[0]}`;title='YouTube视频';}else{embedUrl=url;}let videos=Store.get('videos',[]);videos.push({id:'v'+Date.now(),title,emoji:'🎬',url:embedUrl,progress:0,done:false});Store.set('videos',videos);document.getElementById('video-url').value='';renderVideos();toast('✅ 视频已添加');}
 function openVideo(id){let v=Store.get('videos',[]).find(x=>x.id===id);if(!v)return;document.getElementById('video-iframe').src=v.url;document.getElementById('video-modal').classList.add('show');window._curVideo=id;}
 function closeVideoModal(e){if(e&&e.target!==document.getElementById('video-modal')&&!e.target.classList.contains('video-modal'))return;document.getElementById('video-modal').classList.remove('show');document.getElementById('video-iframe').src='';}
-function markVideoDone(){let id=window._curVideo;let videos=Store.get('videos',[]);let v=videos.find(x=>x.id===id);if(v){v.done=true;v.progress=100;}Store.set('videos',videos);closeVideoModal();renderVideos();addXP(5);addCoins(3);toast('🎉 +5 XP +3🪙');checkBadgeUnlocks();}
+function markVideoDone(){let id=window._curVideo;let videos=Store.get('videos',[]);let v=videos.find(x=>x.id===id);if(v){v.done=true;v.progress=100;}Store.set('videos',videos);let today=todayKey();let tv=Store.get('todayVideo',{date:today,count:0});if(tv.date!==today)tv={date:today,count:0};tv.count++;Store.set('todayVideo',tv);closeVideoModal();renderVideos();addXP(5);addCoins(3);toast('🎉 +5 XP +3🪙');checkBadgeUnlocks();}
 function delVideo(id){Store.set('videos',Store.get('videos',[]).filter(x=>x.id!==id));renderVideos();}
 function renderVideos(){let videos=Store.get('videos',[]);const colors=['rgba(255,181,186,0.4)','rgba(168,216,240,0.4)','rgba(184,230,200,0.4)','rgba(255,229,160,0.4)','rgba(213,184,230,0.4)'];let html=videos.length?'':'<div class="empty"><span class="emoji">🎬</span>还没有学习视频</div>';videos.forEach((v,i)=>{html+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:8px;"><div class="video-card" onclick="openVideo('${v.id}')"><div class="video-thumb" style="background:${colors[i%colors.length]};">${v.emoji}</div><div class="video-info"><div class="video-title">${v.title}</div><div style="font-size:11px;color:var(--text-light);">${v.done?'✅ 已完成':'⏳ 未完成'}</div><div class="video-progress"><div class="video-progress-bar" style="width:${v.progress||0}%;"></div></div></div></div><div class="plan-del" style="padding:8px;text-align:right;font-size:16px;" onclick="delVideo('${v.id}')">×</div></div>`;});document.getElementById('video-list').innerHTML=html;}
 
@@ -827,7 +947,7 @@ function playAllSentences(){if(!window.speechSynthesis)return;window.speechSynth
 async function toggleRecord(){if(isRecording){stopRecord();return;}await startRecord();}
 async function startRecord(){try{let stream=await navigator.mediaDevices.getUserMedia({audio:true});mediaRecorder=new MediaRecorder(stream);audioChunks=[];mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);mediaRecorder.onstop=()=>{let blob=new Blob(audioChunks,{type:'audio/webm'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;let idx=Store.get('shadowIdx',0);a.download=`shadow-${idx+1}-${Date.now()}.webm`;a.click();URL.revokeObjectURL(url);let progress=Store.get('shadowProgress',{});progress[idx]=(progress[idx]||0)+1;Store.set('shadowProgress',progress);addXP(5);addCoins(2);toast('🎉 录音已保存 +5XP +2🪙');isRecording=false;document.getElementById('record-btn').classList.remove('recording');document.getElementById('record-status').textContent='✅ 录音已保存';renderShadow();checkBadgeUnlocks();};mediaRecorder.start();isRecording=true;document.getElementById('record-btn').classList.add('recording');document.getElementById('record-status').textContent='🔴 正在录音...再点停止';}catch(e){toast('🎤 请授权麦克风');}}
 function stopRecord(){if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();}
-function markShadowDone(){let idx=Store.get('shadowIdx',0);let progress=Store.get('shadowProgress',{});progress[idx]=(progress[idx]||0)+1;Store.set('shadowProgress',progress);let nextIdx=(idx+1)%SHADOW_SENTENCES.length;Store.set('shadowIdx',nextIdx);addXP(5);addCoins(2);toast('🎉 +5XP +2🪙 下一句：'+SHADOW_SENTENCES[nextIdx].en);renderShadow();checkBadgeUnlocks();}
+function markShadowDone(){let idx=Store.get('shadowIdx',0);let progress=Store.get('shadowProgress',{});progress[idx]=(progress[idx]||0)+1;Store.set('shadowProgress',progress);let today=todayKey();let ts=Store.get('todayShadow',{date:today,count:0});if(ts.date!==today)ts={date:today,count:0};ts.count++;Store.set('todayShadow',ts);let nextIdx=(idx+1)%SHADOW_SENTENCES.length;Store.set('shadowIdx',nextIdx);addXP(5);addCoins(2);toast('🎉 +5XP +2🪙 下一句：'+SHADOW_SENTENCES[nextIdx].en);renderShadow();checkBadgeUnlocks();}
 function renderShadow(){let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;let s=SHADOW_SENTENCES[idx];document.getElementById('shadow-en').textContent=s.en;document.getElementById('shadow-zh').textContent=s.emoji+' '+s.zh;let progress=Store.get('shadowProgress',{});let html='';SHADOW_SENTENCES.forEach((s,i)=>{let p=progress[i]||0;let isCurrent=i===idx;html+=`<div class="sr-list" style="${isCurrent?'background:linear-gradient(135deg,rgba(168,216,240,0.5),rgba(184,230,200,0.5));':''}"><div class="sr-check ${p>0?'checked':''}" onclick="toggleShadowDone(${i})">${p>0?'✓':''}</div><div class="sr-content"><div class="sr-en">${s.emoji} ${s.en}</div><div class="sr-cn">${s.zh} ${p>0?'· ✅'+p+'次':''}</div></div><div class="sr-play" onclick="shadowSpeak('${s.en.replace(/'/g,"\\'")}',0.7)">▶</div></div>`;});document.getElementById('shadow-list').innerHTML=html;}
 function toggleShadowDone(i){let progress=Store.get('shadowProgress',{});if(progress[i]){delete progress[i];}else{progress[i]=1;}Store.set('shadowProgress',progress);renderShadow();}
 
@@ -875,7 +995,7 @@ function answer(idx){
   renderScore();
   setTimeout(()=>{let ec=document.getElementById('enemy-car');ec.style.transition='none';ec.style.transform='translateX(-50%)';ec.style.opacity='1';ec.style.top='20px';gameState.answered=false;nextQuestion();},1500);
 }
-function endGame(win){gameState.active=false;let wins=Store.get('gameWins',0);if(win){wins++;Store.set('gameWins',wins);let bonusXP=20;let bonusCoins=15;addXP(bonusXP);addCoins(bonusCoins);checkBadgeUnlocks();}document.getElementById('result-emoji').textContent=win?'🎉':'💪';document.getElementById('result-text').textContent=win?'太棒了，你赢了！':'没关系，下次加油！';document.getElementById('result-detail').textContent=win?`答对 ${gameState.correctCount} 题 · +${bonusXP}XP +${bonusCoins}🪙`:`答对 ${gameState.correctCount} 题`;document.getElementById('game-over').classList.add('show');updateGameStats();if(win){fxStars(window.innerWidth/2,window.innerHeight/2,20);}}
+function endGame(win){gameState.active=false;let wins=Store.get('gameWins',0);if(win){wins++;Store.set('gameWins',wins);let bonusXP=20;let bonusCoins=15;addXP(bonusXP);addCoins(bonusCoins);checkBadgeUnlocks();}let today=todayKey();let tg=Store.get('todayGame',{date:today,count:0});if(tg.date!==today)tg={date:today,count:0};tg.count++;Store.set('todayGame',tg);document.getElementById('result-emoji').textContent=win?'🎉':'💪';document.getElementById('result-text').textContent=win?'太棒了，你赢了！':'没关系，下次加油！';document.getElementById('result-detail').textContent=win?`答对 ${gameState.correctCount} 题 · +20XP +15🪙`:`答对 ${gameState.correctCount} 题`;document.getElementById('game-over').classList.add('show');updateGameStats();if(win){fxStars(window.innerWidth/2,window.innerHeight/2,20);}}
 
 // ===== 初始化 =====
 updateTopbar();
