@@ -404,11 +404,11 @@ Store.set('checkins',Store.get('checkins',[]));
 Store.set('streak',Store.get('streak',0));
 Store.set('lastCheckin',Store.get('lastCheckin',''));
 Store.set('videos',Store.get('videos',[
-  {id:'v1',title:'🔤 26个字母歌 ABC Song',emoji:'🔤',url:'https://www.youtube.com/embed/75p-N9YKq68',progress:0,done:false},
-  {id:'v2',title:'🎨 颜色英语歌 Colors Song',emoji:'🎨',url:'https://www.youtube.com/embed/zYRh6lE6t2Q',progress:0,done:false},
-  {id:'v3',title:'🔢 数字英语歌 123 Song',emoji:'🔢',url:'https://www.youtube.com/embed/dpk0U2NIDbA',progress:0,done:false},
-  {id:'v4',title:'🐾 动物英语歌 Animal Song',emoji:'🐾',url:'https://www.youtube.com/embed/JKgP5k1lQdQ',progress:0,done:false},
-  {id:'v5',title:'👋 日常打招呼 Hello Song',emoji:'👋',url:'https://www.youtube.com/embed/fb6E9g8q1j0',progress:0,done:false},
+  {id:'v1',title:'🔤 ABC字母歌 - 学唱26个字母',emoji:'🔤',url:'https://player.bilibili.com/player.html?bvid=BV1Bb411c7pH&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v2',title:'🎨 颜色英语儿歌 Color Songs',emoji:'🎨',url:'https://player.bilibili.com/player.html?bvid=BV1Lr4y1q7dd&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v3',title:'🔢 自然拼读字母儿歌合集',emoji:'🔢',url:'https://player.bilibili.com/player.html?bvid=BV1ZPdLYDEiM&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v4',title:'🐾 动物ABC英语儿歌',emoji:'🐾',url:'https://player.bilibili.com/player.html?bvid=BV1Bb411c7pH&page=1&high_quality=1&autoplay=0',progress:0,done:false},
+  {id:'v5',title:'👋 趣味英语启蒙儿歌',emoji:'👋',url:'https://player.bilibili.com/player.html?bvid=BV1Lr4y1q7dd&page=1&high_quality=1&autoplay=0',progress:0,done:false},
 ]));
 Store.set('wordIdx',Store.get('wordIdx',0));
 Store.set('knownWords',Store.get('knownWords',[]));
@@ -601,13 +601,30 @@ function addVideo(){
   let input=document.getElementById('video-url');
   let url=input.value.trim();
   if(!url)return;
-  let videoId='';
-  if(url.includes('youtube.com/watch?v='))videoId=url.split('v=')[1].split('&')[0];
-  else if(url.includes('youtu.be/'))videoId=url.split('youtu.be/')[1].split('?')[0];
-  else if(url.includes('bilibili.com'))videoId=url; // B站直接存链接
-  let embedUrl=videoId.includes('bilibili')?url:`https://www.youtube.com/embed/${videoId}`;
+  let embedUrl='';
+  let title='学习视频';
+  if(url.includes('bilibili.com')){
+    // B站链接解析
+    let bvid='';
+    if(url.includes('bvid='))bvid=url.split('bvid=')[1].split('&')[0];
+    else if(url.match(/BV\w+/))bvid=url.match(/BV\w+/)[0];
+    if(bvid){
+      embedUrl=`https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&autoplay=0`;
+      title='B站学习视频';
+    }else{embedUrl=url;title='B站视频';}
+  }else if(url.includes('youtube.com/watch?v=')){
+    let vid=url.split('v=')[1].split('&')[0];
+    embedUrl=`https://www.youtube.com/embed/${vid}`;
+    title='YouTube视频';
+  }else if(url.includes('youtu.be/')){
+    let vid=url.split('youtu.be/')[1].split('?')[0];
+    embedUrl=`https://www.youtube.com/embed/${vid}`;
+    title='YouTube视频';
+  }else{
+    embedUrl=url;
+  }
   let videos=Store.get('videos',[]);
-  videos.push({id:'v'+Date.now(),title:url.includes('bilibili')?'B站视频':'YouTube视频',emoji:'🎬',url:embedUrl,progress:0,done:false});
+  videos.push({id:'v'+Date.now(),title:title,emoji:'🎬',url:embedUrl,progress:0,done:false});
   Store.set('videos',videos);
   input.value='';renderVideos();toast('✅ 视频已添加');
 }
