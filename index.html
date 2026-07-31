@@ -497,7 +497,7 @@ input:focus{border-color:var(--pink);}
 
 <script>
 // ===== 数据层 =====
-const Store={K:'pvz_eng_v9',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
+const Store={K:'pvz_eng_v10',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
 Store.set('plans',Store.get('plans',[]));
 Store.set('checkins',Store.get('checkins',[]));
 Store.set('streak',Store.get('streak',0));
@@ -524,7 +524,7 @@ Store.set('chestPending',Store.get('chestPending',null));
 // ===== 等级系统 =====
 const LEVELS=[0,100,250,450,700,1000,1400,1900,2500,3200,4000,5000,6200,7600,9200,11000,13000,15500,18500,22000,26000,30500,35500,41000,47000,53500,60500,68000,76000,84500];
 function getLevelInfo(){let xp=Store.get('xp',0);let lvl=1;for(let i=0;i<LEVELS.length;i++){if(xp>=LEVELS[i])lvl=i+1;}let curBase=LEVELS[lvl-1]||0;let nextBase=LEVELS[lvl]||curBase+1000;let pct=Math.round((xp-curBase)/(nextBase-curBase)*100);return{level:lvl,xp:xp,curBase:curBase,nextBase:nextBase,pct:Math.min(pct,100),need:nextBase-xp};}
-function addXP(amount){let oldLvl=Store.get('level',1);Store.set('xp',Store.get('xp',0)+amount);let info=getLevelInfo();if(info.level>oldLvl){Store.set('level',info.level);showLevelUp(info.level);checkUnlocks(info.level);}updateTopbar();}
+function addXP(amount){let oldLvl=Store.get('level',1);Store.set('xp',Store.get('xp',0)+amount);let info=getLevelInfo();if(info.level>oldLvl){Store.set('level',info.level);showLevelUp(info.level);checkUnlocks();}updateTopbar();}
 function addCoins(amount){Store.set('coins',Store.get('coins',0)+amount);updateTopbar();}
 function updateTopbar(){let info=getLevelInfo();document.getElementById('lvl-badge').textContent=info.level;document.getElementById('xp-fill').style.width=info.pct+'%';document.getElementById('xp-text').textContent=`${info.xp-info.curBase}/${info.nextBase-info.curBase} XP · 还差${info.need}升级`;document.getElementById('coin-count').textContent=Store.get('coins',0);}
 
@@ -591,33 +591,62 @@ const COLLECT_DB={
   ],
 };
 function checkUnlocks(lvl){
+  // 全量检查：补发所有应得但未发的奖励
   let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]});
   let info=getLevelInfo();
-  // 等级解锁
-  COLLECT_DB.cars.forEach((c,i)=>{if(c.unlock===`lvl${lvl}`&&!unlocked.cars.includes(i)){unlocked.cars.push(i);toast(`🏆 解锁：${c.emoji} ${c.name}`);}});
-  COLLECT_DB.pets.forEach((p,i)=>{if(p.unlock===`lvl${lvl}`&&!unlocked.pets.includes(i)){unlocked.pets.push(i);toast(`🐾 获得宠物：${p.emoji} ${p.name}`);}});
-  COLLECT_DB.badges.forEach((b,i)=>{if(b.unlock===`lvl${lvl}`&&!unlocked.badges.includes(i)){unlocked.badges.push(i);toast(`🏅 获得勋章：${b.emoji} ${b.name}`);}});
-  COLLECT_DB.skins.forEach((s,i)=>{if(s.unlock===`lvl${lvl}`&&!unlocked.skins.includes(i)){unlocked.skins.push(i);toast(`🎨 获得皮肤：${s.emoji} ${s.name}`);}});
-  Store.set('unlocked',unlocked);
-}
-function checkBadgeUnlocks(){
-  let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]});
+  let wins=Store.get('gameWins',0);
   let streak=Store.get('streak',0);
   let known=Store.get('knownWords',[]);
-  let wins=Store.get('gameWins',0);
-  let info=getLevelInfo();
   let shadowP=Store.get('shadowProgress',{});
   let shadowCount=Object.keys(shadowP).length;
-  let checks=[
-    {key:'checkin1',cond:streak>=1},{key:'checkin7',cond:streak>=7},{key:'checkin30',cond:streak>=30},
-    {key:'shadow1',cond:shadowCount>=1},{key:'shadow10',cond:shadowCount>=10},
-    {key:'word1',cond:known.length>=1},{key:'word10',cond:known.length>=10},{key:'wordAll',cond:known.length>=WORDS.length},
-    {key:'win1',cond:wins>=1},{key:'win5',cond:wins>=5},{key:'win15',cond:wins>=15},
-    {key:'lvl2',cond:info.level>=2},{key:'lvl5',cond:info.level>=5},{key:'lvl10',cond:info.level>=10},{key:'lvl20',cond:info.level>=20},
-  ];
-  checks.forEach(ch=>{if(ch.cond){COLLECT_DB.badges.forEach((b,i)=>{if(b.unlock===ch.key&&!unlocked.badges.includes(i)){unlocked.badges.push(i);toast(`🏅 获得勋章：${b.emoji} ${b.name}`);}});}});
-  Store.set('unlocked',unlocked);
+  let changed=false;
+  // 车辆解锁（等级+胜场）
+  COLLECT_DB.cars.forEach((c,i)=>{
+    if(unlocked.cars.includes(i))return;
+    let should=false;
+    if(c.unlock==='default')should=true;
+    else if(c.unlock.startsWith('lvl')){let need=parseInt(c.unlock.slice(3));should=info.level>=need;}
+    else if(c.unlock.startsWith('win')){let need=parseInt(c.unlock.slice(3));should=wins>=need;}
+    if(should){unlocked.cars.push(i);toast(`🏆 解锁：${c.emoji} ${c.name}`);changed=true;}
+  });
+  // 宠物解锁
+  COLLECT_DB.pets.forEach((p,i)=>{
+    if(unlocked.pets.includes(i))return;
+    let should=false;
+    if(p.unlock.startsWith('lvl')){let need=parseInt(p.unlock.slice(3));should=info.level>=need;}
+    else if(p.unlock==='chest')should=false; // 宝箱只通过开箱获得
+    if(should){unlocked.pets.push(i);toast(`🐾 获得宠物：${p.emoji} ${p.name}`);changed=true;}
+  });
+  // 勋章解锁（全条件）
+  COLLECT_DB.badges.forEach((b,i)=>{
+    if(unlocked.badges.includes(i))return;
+    let should=false;
+    let u=b.unlock;
+    if(u==='checkin1')should=streak>=1;
+    else if(u==='checkin7')should=streak>=7;
+    else if(u==='checkin30')should=streak>=30;
+    else if(u==='shadow1')should=shadowCount>=1;
+    else if(u==='shadow10')should=shadowCount>=10;
+    else if(u==='word1')should=known.length>=1;
+    else if(u==='word10')should=known.length>=10;
+    else if(u==='wordAll')should=known.length>=WORDS.length;
+    else if(u==='win1')should=wins>=1;
+    else if(u==='win5')should=wins>=5;
+    else if(u==='win15')should=wins>=15;
+    else if(u.startsWith('lvl')){let need=parseInt(u.slice(3));should=info.level>=need;}
+    if(should){unlocked.badges.push(i);toast(`🏅 获得勋章：${b.emoji} ${b.name}`);changed=true;}
+  });
+  // 皮肤解锁
+  COLLECT_DB.skins.forEach((s,i)=>{
+    if(unlocked.skins.includes(i))return;
+    let should=false;
+    if(s.unlock==='default')should=true;
+    else if(s.unlock.startsWith('lvl')){let need=parseInt(s.unlock.slice(3));should=info.level>=need;}
+    if(should){unlocked.skins.push(i);toast(`🎨 获得皮肤：${s.emoji} ${s.name}`);changed=true;}
+  });
+  if(changed)Store.set('unlocked',unlocked);
 }
+function checkBadgeUnlocks(){checkUnlocks();}
 
 // ===== 宝箱系统 =====
 const CHEST_CONFIG={
@@ -779,7 +808,7 @@ document.querySelectorAll('.nav-item').forEach(item=>{
     const v=item.dataset.view;
     if(v==='plan')renderPlans();if(v==='checkin')renderCheckin();if(v==='video')renderVideos();
     if(v==='shadow')renderShadow();if(v==='word')renderWord();if(v==='game')updateGameStats();
-    if(v==='collect')renderCollect();
+    if(v==='collect'){checkUnlocks();renderCollect();}
   });
 });
 
@@ -1004,6 +1033,7 @@ function answer(idx){
 function endGame(win){gameState.active=false;let wins=Store.get('gameWins',0);if(win){wins++;Store.set('gameWins',wins);let bonusXP=20;let bonusCoins=15;addXP(bonusXP);addCoins(bonusCoins);checkBadgeUnlocks();}let today=todayKey();let tg=Store.get('todayGame',{date:today,count:0});if(tg.date!==today)tg={date:today,count:0};tg.count++;Store.set('todayGame',tg);document.getElementById('result-emoji').textContent=win?'🎉':'💪';document.getElementById('result-text').textContent=win?'太棒了，你赢了！':'没关系，下次加油！';document.getElementById('result-detail').textContent=win?`答对 ${gameState.correctCount} 题 · +20XP +15🪙`:`答对 ${gameState.correctCount} 题`;document.getElementById('game-over').classList.add('show');updateGameStats();if(win){fxStars(window.innerWidth/2,window.innerHeight/2,20);}}
 
 // ===== 初始化 =====
+checkUnlocks(); // 启动时补发所有应得奖励
 updateTopbar();
 renderPlans();
 </script>
