@@ -324,6 +324,11 @@ input:focus{border-color:var(--pink);}
         <div style="font-size:11px;color:var(--text-light);margin-top:4px;" id="total-checkin">累计打卡 0 天</div>
         <button class="btn btn-sm btn-green" style="margin-top:12px;" id="checkin-btn" onclick="doCheckin()">今日打卡</button>
       </div>
+      <div class="card card-blue" style="text-align:center;" id="today-curriculum-card">
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">📚 今日课程</div>
+        <div style="font-weight:800;font-size:15px;color:var(--blue-deep);" id="today-curriculum-title">Day 1</div>
+        <div style="font-size:12px;color:var(--text-main);margin-top:4px;" id="today-curriculum-desc"></div>
+      </div>
       <div class="card card-yellow"><div style="font-weight:700;font-size:14px;margin-bottom:8px;" id="cal-title">📅 日历</div><div class="cal-grid" id="cal-grid"></div></div>
     </div>
 
@@ -342,7 +347,7 @@ input:focus{border-color:var(--pink);}
       <h1 class="page-title">🎤 跟读练习</h1>
       <p class="page-sub">听老师读，跟着读 · 每句+5 XP</p>
       <div class="shadow-card">
-        <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">📚 Module 4 · You and me · 第 <span id="shadow-cur-num">1</span>/<span id="shadow-total">27</span> 句</div>
+        <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;" id="shadow-module-title">📚 今日课程 · 第 <span id="shadow-cur-num">1</span>/<span id="shadow-total">27</span> 句</div>
         <div class="sentence-en" id="shadow-en">He is a boy.</div>
         <div class="sentence-zh" id="shadow-zh">他是个男孩。</div>
         <div style="font-size:13px;color:var(--text-light);margin-bottom:8px;">🐢 慢速 · <span id="shadow-rate">0.7</span>x</div>
@@ -817,6 +822,39 @@ function formatUnlock(u){
 
 // ===== Toast =====
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+// ===== 课程表系统（按打卡天数推进） =====
+// 第1天 = Day1 的内容，第2天 = Day2 的内容...
+const CURRICULUM=[
+  // Day1: 男孩女孩 + 基础认知
+  {day:1,title:'Day 1 · 男孩与女孩',desc:'学习 boy / girl 基础单词和简单句',words:[0,1,4,5],sentences:[11,12,13,14],questions:[0,1,10,11,20,21]},
+  // Day2: 高矮胖瘦
+  {day:2,title:'Day 2 · 高矮胖瘦',desc:'学习 tall / short / thin / fat',words:[2,3,4,5,6,7],sentences:[13,14,15,16],questions:[2,3,4,5,12,13]},
+  // Day3: 情绪 happy/sad
+  {day:3,title:'Day 3 · 开心与伤心',desc:'学习 happy / sad 和情绪表达',words:[8,9],sentences:[3,4,5,6,7],questions:[6,7,14,15,22,23]},
+  // Day4: 饿了渴了 + 数字
+  {day:4,title:'Day 4 · 饿了渴了',desc:'学习 hungry / thirsty 和数字 11-15',words:[10,11,12,13,14,15],sentences:[15,16,0,1,2],questions:[8,9,16,17,26,27]},
+  // Day5: 课堂用语
+  {day:5,title:'Day 5 · 课堂用语',desc:'学习 What is this? / I don\'t understand 等',words:[16,17,18,19],sentences:[16,17,18,19,20],questions:[18,19,20,21]},
+  // Day6: 问句练习
+  {day:6,title:'Day 6 · 问与答',desc:'Are you happy? / Is she sad? 练习',words:[8,9,0,1],sentences:[3,4,5,8,9,10],questions:[6,7,28,29,30,31]},
+  // Day7: Who 问句 + 课堂
+  {day:7,title:'Day 7 · Who 是谁',desc:'Who is he? / Who is she? 练习',words:[17,16,0,1],sentences:[20,21,22,23,24],questions:[32,33,34,35]},
+  // Day8: 数字复习
+  {day:8,title:'Day 8 · 数字复习',desc:'复习 11-15 和缩写形式',words:[12,13,14,15],sentences:[0,1,2],questions:[26,27,28,29,30,31,32,33]},
+  // Day9: 综合复习
+  {day:9,title:'Day 9 · 综合复习',desc:'复习所有 Module 4 内容',words:[0,1,2,3,4,5,6,7,8,9,10,11],sentences:[11,12,13,14,3,4,5],questions:[0,1,2,3,4,5,6,7,8,9]},
+  // Day10: 总复习 + 课堂用语
+  {day:10,title:'Day 10 · 总复习',desc:'全面复习，巩固掌握',words:[16,17,18,19,0,1,2,3],sentences:[16,17,18,19,20,21,22,23,24],questions:[18,19,20,21,32,33,34,35]},
+];
+function getCurriculumDay(){
+  let streak=Store.get('streak',0);
+  if(streak===0)streak=1; // 还没打卡时显示第一天
+  let idx=Math.min(streak-1,CURRICULUM.length-1);
+  return CURRICULUM[idx];
+}
+function getTodayWords(){let d=getCurriculumDay();return d.words.map(i=>WORDS[i]);}
+function getTodaySentences(){let d=getCurriculumDay();return d.sentences.map(i=>SHADOW_SENTENCES[i]);}
+function getTodayQuestions(){let d=getCurriculumDay();return d.questions.map(i=>QUESTIONS[i]);}
 
 // ===== 跟读课文数据 =====
 const SHADOW_SENTENCES=[
@@ -1050,6 +1088,7 @@ function doCheckin(){
 function renderCheckin(){
   let checkins=Store.get('checkins',[]);let streak=Store.get('streak',0);
   document.getElementById('streak-days').textContent=streak;
+  let d=getCurriculumDay();let titleEl=document.getElementById('today-curriculum-title');if(titleEl)titleEl.textContent=d.title;let descEl=document.getElementById('today-curriculum-desc');if(descEl)descEl.textContent=d.desc;
   document.getElementById('total-checkin').textContent=`累计打卡 ${checkins.length} 天`;
   let today=todayKey();
   let btn=document.getElementById('checkin-btn');
@@ -1096,28 +1135,28 @@ function renderVideos(){let videos=Store.get('videos',[]);const colors=['rgba(25
 // ===== 4. 跟读 =====
 let isRecording=false,mediaRecorder=null,audioChunks=[];
 function shadowSpeak(text,rate){if(!window.speechSynthesis)return;window.speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=rate||0.7;u.pitch=1.1;window.speechSynthesis.speak(u);}
-function shadowSlowPlay(){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)%SHADOW_SENTENCES.length];shadowSpeak(s.en,0.6);toast('🐢 慢速：'+s.en);}
-function shadowNormalPlay(){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)%SHADOW_SENTENCES.length];shadowSpeak(s.en,1.0);toast('▶ 正常：'+s.en);}
-function playStep(n){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)%SHADOW_SENTENCES.length];if(n===1){shadowSpeak(s.en,0.5);}else if(n===2){shadowSpeak(s.en,0.7);setTimeout(()=>shadowSpeak(s.en,0.9),2500);}else if(n===3){startRecord();}}
-function prevShadow(){let idx=Store.get('shadowIdx',0);idx=(idx-1+SHADOW_SENTENCES.length)%SHADOW_SENTENCES.length;Store.set('shadowIdx',idx);renderShadow();}
-function nextShadow(){let idx=Store.get('shadowIdx',0);idx=(idx+1)%SHADOW_SENTENCES.length;Store.set('shadowIdx',idx);renderShadow();}
-function playShadowIdx(i){Store.set('shadowIdx',i);renderShadow();shadowSpeak(SHADOW_SENTENCES[i].en,0.7);}
-function playAllSentences(){if(!window.speechSynthesis)return;window.speechSynthesis.cancel();let i=0;function playNext(){if(i>=SHADOW_SENTENCES.length)return;shadowSpeak(SHADOW_SENTENCES[i].en,0.6);setTimeout(playNext,4000);i++;}playNext();toast('🔁 连续播放');}
+function shadowSlowPlay(){let todaySents=getTodaySentences();let s=todaySents[Store.get('shadowIdx',0)%todaySents.length];shadowSpeak(s.en,0.6);toast('🐢 慢速：'+s.en);}
+function shadowNormalPlay(){let todaySents=getTodaySentences();let s=todaySents[Store.get('shadowIdx',0)%todaySents.length];shadowSpeak(s.en,1.0);toast('▶ 正常：'+s.en);}
+function playStep(n){let todaySents=getTodaySentences();let s=todaySents[Store.get('shadowIdx',0)%todaySents.length];if(n===1){shadowSpeak(s.en,0.5);}else if(n===2){shadowSpeak(s.en,0.7);setTimeout(()=>shadowSpeak(s.en,0.9),2500);}else if(n===3){startRecord();}}
+function prevShadow(){let todaySents=getTodaySentences();let idx=Store.get('shadowIdx',0);idx=(idx-1+todaySents.length)%todaySents.length;Store.set('shadowIdx',idx);renderShadow();}
+function nextShadow(){let todaySents=getTodaySentences();let idx=Store.get('shadowIdx',0);idx=(idx+1)%todaySents.length;Store.set('shadowIdx',idx);renderShadow();}
+function playShadowIdx(i){Store.set('shadowIdx',i);renderShadow();let todaySents=getTodaySentences();shadowSpeak(todaySents[i].en,0.7);}
+function playAllSentences(){if(!window.speechSynthesis)return;window.speechSynthesis.cancel();let todaySents=getTodaySentences();let i=0;function playNext(){if(i>=todaySents.length)return;shadowSpeak(todaySents[i].en,0.6);setTimeout(playNext,4000);i++;}playNext();toast('🔁 连续播放');}
 async function toggleRecord(){if(isRecording){stopRecord();return;}await startRecord();}
 async function startRecord(){try{let stream=await navigator.mediaDevices.getUserMedia({audio:true});mediaRecorder=new MediaRecorder(stream);audioChunks=[];mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);mediaRecorder.onstop=()=>{let blob=new Blob(audioChunks,{type:'audio/webm'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;let idx=Store.get('shadowIdx',0);a.download=`shadow-${idx+1}-${Date.now()}.webm`;a.click();URL.revokeObjectURL(url);// 录完音自动完成：标记进度+给奖励+自动跳下一句
-let progress=Store.get('shadowProgress',{});progress[idx]=(progress[idx]||0)+1;Store.set('shadowProgress',progress);let today=todayKey();let ts=Store.get('todayShadow',{date:today,count:0});if(ts.date!==today)ts={date:today,count:0};ts.count++;Store.set('todayShadow',ts);addXP(5);addCoins(2);let nextIdx=(idx+1)%SHADOW_SENTENCES.length;Store.set('shadowIdx',nextIdx);isRecording=false;document.getElementById('record-btn').classList.remove('recording');document.getElementById('record-status').textContent='✅ '+SHADOW_SENTENCES[idx].en+' 已完成！下一句：'+SHADOW_SENTENCES[nextIdx].en;toast('🎉 +5XP +2🪙 自动跳到下一句');renderShadow();checkBadgeUnlocks();};mediaRecorder.start();isRecording=true;document.getElementById('record-btn').classList.add('recording');document.getElementById('record-status').textContent='🔴 正在录音...再点停止';}catch(e){toast('🎤 请授权麦克风');}}
+let progress=Store.get('shadowProgress',{});let d=getCurriculumDay();let key=d.day+'_'+idx;progress[key]=(progress[key]||0)+1;Store.set('shadowProgress',progress);let today=todayKey();let ts=Store.get('todayShadow',{date:today,count:0});if(ts.date!==today)ts={date:today,count:0};ts.count++;Store.set('todayShadow',ts);addXP(5);addCoins(2);let todaySents=getTodaySentences();let nextIdx=(idx+1)%todaySents.length;Store.set('shadowIdx',nextIdx);isRecording=false;document.getElementById('record-btn').classList.remove('recording');document.getElementById('record-status').textContent='✅ '+todaySents[idx].en+' 已完成！下一句：'+todaySents[nextIdx].en;toast('🎉 +5XP +2🪙 自动跳到下一句');renderShadow();checkBadgeUnlocks();};mediaRecorder.start();isRecording=true;document.getElementById('record-btn').classList.add('recording');document.getElementById('record-status').textContent='🔴 正在录音...再点停止';}catch(e){toast('🎤 请授权麦克风');}}
 function stopRecord(){if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();}
-function markShadowDone(){let idx=Store.get('shadowIdx',0);let progress=Store.get('shadowProgress',{});progress[idx]=(progress[idx]||0)+1;Store.set('shadowProgress',progress);let today=todayKey();let ts=Store.get('todayShadow',{date:today,count:0});if(ts.date!==today)ts={date:today,count:0};ts.count++;Store.set('todayShadow',ts);let nextIdx=(idx+1)%SHADOW_SENTENCES.length;Store.set('shadowIdx',nextIdx);addXP(5);addCoins(2);toast('🎉 +5XP +2🪙 下一句：'+SHADOW_SENTENCES[nextIdx].en);renderShadow();checkBadgeUnlocks();}
-function renderShadow(){let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;let s=SHADOW_SENTENCES[idx];document.getElementById('shadow-en').textContent=s.en;document.getElementById('shadow-zh').textContent=s.emoji+' '+s.zh;document.getElementById('shadow-cur-num').textContent=idx+1;document.getElementById('shadow-total').textContent=SHADOW_SENTENCES.length;let progress=Store.get('shadowProgress',{});let html='';SHADOW_SENTENCES.forEach((sent,i)=>{let p=progress[i]||0;let isCurrent=i===idx;html+=`<div class="sr-list" style="${isCurrent?'background:linear-gradient(135deg,rgba(168,216,240,0.5),rgba(184,230,200,0.5));':''}"><div class="sr-check ${p>0?'checked':''}" onclick="toggleShadowDone(${i})">${p>0?'✓':''}</div><div class="sr-content"><div class="sr-en">${sent.emoji} ${sent.en}</div><div class="sr-cn">${sent.zh} ${p>0?'· ✅'+p+'次':''}</div></div><div class="sr-play" onclick="playShadowIdx(${i})">▶</div></div>`;});document.getElementById('shadow-list').innerHTML=html;}
+function markShadowDone(){let idx=Store.get('shadowIdx',0);let d=getCurriculumDay();let progress=Store.get('shadowProgress',{});let key=d.day+'_'+idx;progress[key]=(progress[key]||0)+1;Store.set('shadowProgress',progress);let today=todayKey();let ts=Store.get('todayShadow',{date:today,count:0});if(ts.date!==today)ts={date:today,count:0};ts.count++;Store.set('todayShadow',ts);let todaySents=getTodaySentences();let nextIdx=(idx+1)%todaySents.length;Store.set('shadowIdx',nextIdx);addXP(5);addCoins(2);toast('🎉 +5XP +2🪙 下一句：'+todaySents[nextIdx].en);renderShadow();checkBadgeUnlocks();}
+function renderShadow(){let todaySents=getTodaySentences();let idx=Store.get('shadowIdx',0)%todaySents.length;let s=todaySents[idx];let d=getCurriculumDay();document.getElementById('shadow-en').textContent=s.en;document.getElementById('shadow-zh').textContent=s.emoji+' '+s.zh;document.getElementById('shadow-cur-num').textContent=idx+1;document.getElementById('shadow-total').textContent=todaySents.length;let progress=Store.get('shadowProgress',{});let html='';todaySents.forEach((sent,i)=>{let p=progress[d.day+'_'+i]||0;let isCurrent=i===idx;html+=`<div class="sr-list" style="${isCurrent?'background:linear-gradient(135deg,rgba(168,216,240,0.5),rgba(184,230,200,0.5));':''}"><div class="sr-check ${p>0?'checked':''}" onclick="toggleShadowDone(${i})">${p>0?'✓':''}</div><div class="sr-content"><div class="sr-en">${sent.emoji} ${sent.en}</div><div class="sr-cn">${sent.zh} ${p>0?'· ✅'+p+'次':''}</div></div><div class="sr-play" onclick="playShadowIdx(${i})">▶</div></div>`;});document.getElementById('shadow-list').innerHTML=html;}
 function toggleShadowDone(i){let progress=Store.get('shadowProgress',{});if(progress[i]){delete progress[i];}else{progress[i]=1;}Store.set('shadowProgress',progress);renderShadow();}
 function resetShadowProgress(){Store.set('shadowProgress',{});Store.set('shadowIdx',0);renderShadow();toast('🔄 已重置，从第一句开始');}
 
 // ===== 5. 单词卡片 =====
 let isFlipped=false;
 function flipCard(){isFlipped=!isFlipped;document.getElementById('word-card3d').classList.toggle('flipped',isFlipped);}
-function renderWord(){let idx=Store.get('wordIdx',0)%WORDS.length;let w=WORDS[idx];document.getElementById('word-emoji').textContent=w.emoji;document.getElementById('word-en').textContent=w.en;document.getElementById('word-phonetic').textContent=w.ph;document.getElementById('word-zh').textContent=w.zh;document.getElementById('word-example').textContent=w.ex;document.getElementById('word-counter').textContent=`点击卡片翻面 · ${idx+1}/${WORDS.length}`;document.getElementById('known-count').textContent=Store.get('knownWords',[]).length;isFlipped=false;document.getElementById('word-card3d').classList.remove('flipped');}
-function nextWord(){Store.set('wordIdx',(Store.get('wordIdx',0)+1)%WORDS.length);renderWord();}
-function prevWord(){Store.set('wordIdx',(Store.get('wordIdx',0)-1+WORDS.length)%WORDS.length);renderWord();}
+function renderWord(){let todayWords=getTodayWords();let idx=Store.get('wordIdx',0)%todayWords.length;let w=todayWords[idx];document.getElementById('word-emoji').textContent=w.emoji;document.getElementById('word-en').textContent=w.en;document.getElementById('word-phonetic').textContent=w.ph;document.getElementById('word-zh').textContent=w.zh;document.getElementById('word-example').textContent=w.ex;document.getElementById('word-counter').textContent=`点击卡片翻面 · ${idx+1}/${todayWords.length}`;document.getElementById('known-count').textContent=Store.get('knownWords',[]).length;isFlipped=false;document.getElementById('word-card3d').classList.remove('flipped');}
+function nextWord(){let todayWords=getTodayWords();Store.set('wordIdx',(Store.get('wordIdx',0)+1)%todayWords.length);renderWord();}
+function prevWord(){let todayWords=getTodayWords();Store.set('wordIdx',(Store.get('wordIdx',0)-1+todayWords.length)%todayWords.length);renderWord();}
 function markWordKnown(){let idx=Store.get('wordIdx',0);let known=Store.get('knownWords',[]);if(!known.includes(idx)){known.push(idx);Store.set('knownWords',known);addXP(3);addCoins(1);toast('✅ +3XP +1🪙 已标记认识');}else{toast('已经标记过了');}document.getElementById('known-count').textContent=known.length;checkBadgeUnlocks();}
 
 // ===== 6. 游戏 =====
@@ -1134,10 +1173,10 @@ function updateNextCarProgress(){
   let need=parseInt(nextCar.unlock.slice(3));
   el.textContent=`下一辆车：${nextCar.emoji} ${nextCar.name} (${need}胜) · 当前 ${wins} 胜`;
 }
-function nextQuestion(){if(!gameState.active)return;let qi=Math.floor(Math.random()*QUESTIONS.length);gameState.qIdx=qi;let q=QUESTIONS[qi];document.getElementById('game-q-text').textContent=q.q;document.getElementById('game-q-sub').textContent='选对答案加速撞飞对手！';updateNextCarProgress();let html='';q.opts.forEach((opt,i)=>{html+=`<div class="game-opt" onclick="answer(${i})">${opt}</div>`;});document.getElementById('game-options').innerHTML=html;let playerCar=Store.get('currentCar',0);let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]}).cars;let enemyPool=unlocked.filter(i=>i!==playerCar);if(!enemyPool.length)enemyPool=[0,1,2,3,4,5].filter(i=>i!==playerCar);if(!enemyPool.length)enemyPool=[0];let enemyIdx=enemyPool[Math.floor(Math.random()*enemyPool.length)];document.getElementById('enemy-emoji').textContent=COLLECT_DB.cars[enemyIdx].emoji;}
+function nextQuestion(){if(!gameState.active)return;let todayQs=getTodayQuestions();let qi=Math.floor(Math.random()*todayQs.length);gameState.qIdx=qi;let q=todayQs[qi];document.getElementById('game-q-text').textContent=q.q;document.getElementById('game-q-sub').textContent='选对答案加速撞飞对手！';updateNextCarProgress();let html='';q.opts.forEach((opt,i)=>{html+=`<div class="game-opt" onclick="answer(${i})">${opt}</div>`;});document.getElementById('game-options').innerHTML=html;let playerCar=Store.get('currentCar',0);let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]}).cars;let enemyPool=unlocked.filter(i=>i!==playerCar);if(!enemyPool.length)enemyPool=[0,1,2,3,4,5].filter(i=>i!==playerCar);if(!enemyPool.length)enemyPool=[0];let enemyIdx=enemyPool[Math.floor(Math.random()*enemyPool.length)];document.getElementById('enemy-emoji').textContent=COLLECT_DB.cars[enemyIdx].emoji;}
 function answer(idx){
   if(!gameState.active||gameState.answered)return;gameState.answered=true;
-  let q=QUESTIONS[gameState.qIdx];let opts=document.querySelectorAll('.game-opt');opts.forEach(o=>o.style.pointerEvents='none');
+  let q=getTodayQuestions()[gameState.qIdx];let opts=document.querySelectorAll('.game-opt');opts.forEach(o=>o.style.pointerEvents='none');
   let rect=opts[idx]?opts[idx].getBoundingClientRect():{x:window.innerWidth/2,y:window.innerHeight/2};
   if(idx===q.ans){
     opts[idx].classList.add('correct');gameState.combo++;gameState.correctCount++;
@@ -1194,7 +1233,8 @@ function endGame(win){
 
 // ===== 英语贪吃蛇游戏 =====
 if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(w<2*r)r=w/2;if(h<2*r)r=h/2;this.beginPath();this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath();return this;};}
-const SNAKE_WORDS=['boy','girl','big','small','tall','short','happy','sad','he','she','it','yes','no','cat','dog','red','sun','hot','big','ten'];
+const SNAKE_WORDS_BASE=['boy','girl','big','small','tall','short','happy','sad','he','she','it','yes','no','cat','dog','red','sun','hot','big','ten'];
+function getSnakeWords(){let tw=getTodayWords();let ws=tw.map(w=>w.en);return ws.length>=3?ws:SNAKE_WORDS_BASE;}
 let snakeState={running:false,snake:[],food:[],dir:{x:1,y:0},score:0,best:0,currentWord:'',collectedIdx:0,gridSize:16,cell:20,timer:null,foodLetters:[],allFood:[],level:1,wordsCompleted:0};
 function startSnake(){
   let canvas=document.getElementById('snake-canvas');
@@ -1207,7 +1247,7 @@ function startSnake(){
   snakeState.level=1;
   snakeState.wordsCompleted=0;
   // 随机选一个单词
-  snakeState.currentWord=SNAKE_WORDS[Math.floor(Math.random()*SNAKE_WORDS.length)];
+  snakeState.currentWord=getSnakeWords()[Math.floor(Math.random()*getSnakeWords().length)];
   snakeState.collectedIdx=0;
   snakeState.allFood=[];
   // 生成食物：单词的每个字母 + 几个干扰字母
@@ -1332,7 +1372,7 @@ function snakeTick(){
         if(snakeState.timer)clearInterval(snakeState.timer);
         snakeState.timer=setInterval(snakeTick,getSnakeSpeed());
         // 选新单词，重新放食物
-        snakeState.currentWord=SNAKE_WORDS[Math.floor(Math.random()*SNAKE_WORDS.length)];
+        snakeState.currentWord=getSnakeWords()[Math.floor(Math.random()*getSnakeWords().length)];
         snakeState.collectedIdx=0;
         snakeState.allFood=[];
         let letters=snakeState.currentWord.split('');
