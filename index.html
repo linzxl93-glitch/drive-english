@@ -472,7 +472,7 @@ input:focus{border-color:var(--pink);}
       <div class="card card-blue" style="padding:8px;">
         <canvas id="snake-canvas" width="320" height="320" style="display:block;margin:0 auto;border-radius:12px;background:linear-gradient(135deg,#e8f5e9,#e3f2fd);max-width:100%;"></canvas>
         <div style="text-align:center;margin-top:8px;">
-          <div style="font-size:12px;color:var(--text-light);margin-bottom:8px;">🏆 得分：<span id="snake-score" style="font-weight:800;color:var(--blue-deep);">0</span> · 最高：<span id="snake-best" style="font-weight:700;">0</span></div>
+          <div style="font-size:12px;color:var(--text-light);margin-bottom:8px;">🏆 得分：<span id="snake-score" style="font-weight:800;color:var(--blue-deep);">0</span> · 关卡：<span id="snake-level" style="font-weight:800;color:var(--pink-deep);">1</span> · 最高：<span id="snake-best" style="font-weight:700;">0</span></div>
           <div id="snake-controls" style="display:flex;flex-direction:column;align-items:center;gap:4px;">
             <button id="snake-up" class="btn btn-sm" style="width:56px;height:40px;">⬆️</button>
             <div style="display:flex;gap:4px;">
@@ -1195,7 +1195,7 @@ function endGame(win){
 // ===== 英语贪吃蛇游戏 =====
 if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(w<2*r)r=w/2;if(h<2*r)r=h/2;this.beginPath();this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath();return this;};}
 const SNAKE_WORDS=['boy','girl','big','small','tall','short','happy','sad','he','she','it','yes','no','cat','dog','red','sun','hot','big','ten'];
-let snakeState={running:false,snake:[],food:[],dir:{x:1,y:0},score:0,best:0,currentWord:'',collectedIdx:0,gridSize:16,cell:20,timer:null,foodLetters:[],allFood:[]};
+let snakeState={running:false,snake:[],food:[],dir:{x:1,y:0},score:0,best:0,currentWord:'',collectedIdx:0,gridSize:16,cell:20,timer:null,foodLetters:[],allFood:[],level:1,wordsCompleted:0};
 function startSnake(){
   let canvas=document.getElementById('snake-canvas');
   let ctx=canvas.getContext('2d');
@@ -1204,6 +1204,8 @@ function startSnake(){
   snakeState.dir={x:1,y:0};
   snakeState.score=0;
   snakeState.best=Store.get('snakeBest',0);
+  snakeState.level=1;
+  snakeState.wordsCompleted=0;
   // 随机选一个单词
   snakeState.currentWord=SNAKE_WORDS[Math.floor(Math.random()*SNAKE_WORDS.length)];
   snakeState.collectedIdx=0;
@@ -1227,7 +1229,11 @@ function startSnake(){
   updateSnakeUI();
   drawSnake();
   if(snakeState.timer)clearInterval(snakeState.timer);
-  snakeState.timer=setInterval(snakeTick,180);
+  snakeState.timer=setInterval(snakeTick,getSnakeSpeed());
+}
+function getSnakeSpeed(){
+  // 第1关 280ms 很慢 → 每关减20ms → 最低 100ms
+  return Math.max(100,300-snakeState.level*20);
 }
 function randomEmptyCell(){
   let g=snakeState.gridSize;
@@ -1253,6 +1259,7 @@ function updateSnakeUI(){
   document.getElementById('snake-body-text').textContent=collected;
   document.getElementById('snake-score').textContent=snakeState.score;
   document.getElementById('snake-best').textContent=snakeState.best;
+  let lvlEl=document.getElementById('snake-level');if(lvlEl)lvlEl.textContent=snakeState.level;
 }
 function drawSnake(){
   let canvas=document.getElementById('snake-canvas');
@@ -1314,10 +1321,16 @@ function snakeTick(){
       // 单词拼完了？
       if(snakeState.collectedIdx>=snakeState.currentWord.length){
         snakeState.score+=15;
+        snakeState.wordsCompleted++;
+        // 升级关卡（每拼完1个单词+1关）
+        snakeState.level=1+snakeState.wordsCompleted;
         addXP(15);addCoins(10);
         playWinMusic();
         fxStars(window.innerWidth/2,window.innerHeight/2,12);
-        toast(`🎉 拼出 ${snakeState.currentWord.toUpperCase()}！+15XP +10🪙`);
+        toast(`🎉 拼出 ${snakeState.currentWord.toUpperCase()}！第${snakeState.level}关！+15XP +10🪙`);
+        // 调整速度
+        if(snakeState.timer)clearInterval(snakeState.timer);
+        snakeState.timer=setInterval(snakeTick,getSnakeSpeed());
         // 选新单词，重新放食物
         snakeState.currentWord=SNAKE_WORDS[Math.floor(Math.random()*SNAKE_WORDS.length)];
         snakeState.collectedIdx=0;
@@ -1351,9 +1364,10 @@ function endSnake(win){
   if(snakeState.timer)clearInterval(snakeState.timer);
   let score=snakeState.score;
   if(score>snakeState.best){snakeState.best=score;Store.set('snakeBest',score);}
+  if(snakeState.level>Store.get('snakeMaxLevel',1)){Store.set('snakeMaxLevel',snakeState.level);}
   document.getElementById('snake-result-emoji').textContent=score>0?'🎉':'💪';
-  document.getElementById('snake-result-text').textContent=score>0?`得分 ${score}！`:'再接再厉！';
-  document.getElementById('snake-result-detail').textContent=`最高分：${snakeState.best}`;
+  document.getElementById('snake-result-text').textContent=score>0?`得分 ${score}！通关 ${snakeState.level} 关`:'再接再厉！';
+  document.getElementById('snake-result-detail').textContent=`最高分：${snakeState.best} · 最高关卡：${Math.max(snakeState.level,Store.get('snakeMaxLevel',1))}`;
   document.getElementById('snake-game-over').style.display='block';
   if(score>0){fxStars(window.innerWidth/2,window.innerHeight/2,10);}
 }
