@@ -501,7 +501,7 @@ input:focus{border-color:var(--pink);}
 
 <script>
 // ===== 数据层 =====
-const Store={K:'pvz_eng_v12',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
+const Store={K:'pvz_eng_v13',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
 Store.set('plans',Store.get('plans',[]));
 Store.set('checkins',Store.get('checkins',[]));
 Store.set('streak',Store.get('streak',0));
@@ -970,9 +970,30 @@ function renderCheckin(){
 
 // ===== 3. 视频 =====
 function addVideo(){let url=document.getElementById('video-url').value.trim();if(!url)return;let embedUrl=url,title='学习视频';if(url.includes('bilibili.com')){let bvid='';if(url.includes('bvid='))bvid=url.split('bvid=')[1].split('&')[0];else if(url.match(/BV\w+/))bvid=url.match(/BV\w+/)[0];embedUrl=`https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&autoplay=0`;title='B站视频';}else if(url.includes('youtube.com/watch?v=')){embedUrl=`https://www.youtube.com/embed/${url.split('v=')[1].split('&')[0]}`;title='YouTube视频';}else if(url.includes('youtu.be/')){embedUrl=`https://www.youtube.com/embed/${url.split('youtu.be/')[1].split('?')[0]}`;title='YouTube视频';}else{embedUrl=url;}let videos=Store.get('videos',[]);videos.push({id:'v'+Date.now(),title,emoji:'🎬',url:embedUrl,progress:0,done:false});Store.set('videos',videos);document.getElementById('video-url').value='';renderVideos();toast('✅ 视频已添加');}
-function openVideo(id){let v=Store.get('videos',[]).find(x=>x.id===id);if(!v)return;document.getElementById('video-iframe').src=v.url;document.getElementById('video-modal').classList.add('show');window._curVideo=id;}
-function closeVideoModal(e){if(e&&e.target!==document.getElementById('video-modal')&&!e.target.classList.contains('video-modal'))return;document.getElementById('video-modal').classList.remove('show');document.getElementById('video-iframe').src='';}
-function markVideoDone(){let id=window._curVideo;let videos=Store.get('videos',[]);let v=videos.find(x=>x.id===id);if(v){v.done=true;v.progress=100;}Store.set('videos',videos);let today=todayKey();let tv=Store.get('todayVideo',{date:today,count:0});if(tv.date!==today)tv={date:today,count:0};tv.count++;Store.set('todayVideo',tv);closeVideoModal();renderVideos();addXP(5);addCoins(3);toast('🎉 +5 XP +3🪙');checkBadgeUnlocks();}
+function openVideo(id){
+  let v=Store.get('videos',[]).find(x=>x.id===id);if(!v)return;
+  document.getElementById('video-iframe').src=v.url;
+  document.getElementById('video-modal').classList.add('show');
+  window._curVideo=id;
+  // 打开即算完成（看一半也算）
+  if(!v.done){
+    let videos=Store.get('videos',[]);
+    let vid=videos.find(x=>x.id===id);
+    if(vid){vid.done=true;vid.progress=100;}
+    Store.set('videos',videos);
+    let today=todayKey();let tv=Store.get('todayVideo',{date:today,count:0});
+    if(tv.date!==today)tv={date:today,count:0};tv.count++;Store.set('todayVideo',tv);
+    addXP(5);addCoins(3);
+    toast('🎬 视频已开始 · +5 XP +3🪙');
+    checkBadgeUnlocks();
+    setTimeout(()=>{if(!document.getElementById('video-modal').classList.contains('show'))return;renderVideos();},100);
+  }
+}
+function closeVideoModal(e){if(e&&e.target!==document.getElementById('video-modal')&&!e.target.classList.contains('video-modal'))return;document.getElementById('video-modal').classList.remove('show');document.getElementById('video-iframe').src='';renderVideos();}
+function markVideoDone(){
+  // 保留但改为关闭弹窗用（打开时已自动完成）
+  closeVideoModal();
+}
 function delVideo(id){Store.set('videos',Store.get('videos',[]).filter(x=>x.id!==id));renderVideos();}
 function renderVideos(){let videos=Store.get('videos',[]);const colors=['rgba(255,181,186,0.4)','rgba(168,216,240,0.4)','rgba(184,230,200,0.4)','rgba(255,229,160,0.4)','rgba(213,184,230,0.4)'];let html=videos.length?'':'<div class="empty"><span class="emoji">🎬</span>还没有学习视频</div>';videos.forEach((v,i)=>{html+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:8px;"><div class="video-card" onclick="openVideo('${v.id}')"><div class="video-thumb" style="background:${colors[i%colors.length]};">${v.emoji}</div><div class="video-info"><div class="video-title">${v.title}</div><div style="font-size:13px;color:var(--text-light);">${v.done?'✅ 已完成':'⏳ 未完成'}</div><div class="video-progress"><div class="video-progress-bar" style="width:${v.progress||0}%;"></div></div></div></div><div class="plan-del" style="padding:8px;text-align:right;font-size:20px;" onclick="delVideo('${v.id}')">×</div></div>`;});document.getElementById('video-list').innerHTML=html;}
 
