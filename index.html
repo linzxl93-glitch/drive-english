@@ -411,7 +411,7 @@ input:focus{border-color:var(--pink);}
           <div class="game-question" id="game-question">
             <div class="game-q-text" id="game-q-text">准备好了吗？</div>
             <div class="game-q-sub" id="game-q-sub">选对答案加速撞飞对手！</div>
-            <div id="game-progress" style="margin-top:6px;font-size:11px;color:var(--text-light);">进度：0/5</div>
+            <div id="game-progress" style="margin-top:6px;font-size:11px;color:var(--text-light);">下一辆车：出租车 (5胜) · 当前 0 胜</div>
           </div>
           <div class="car enemy" id="enemy-car"><div class="car-img" id="enemy-emoji">🚗</div></div>
           <div class="crash-effect" id="crash-eff">💥</div>
@@ -501,7 +501,7 @@ input:focus{border-color:var(--pink);}
 
 <script>
 // ===== 数据层 =====
-const Store={K:'pvz_eng_v13',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
+const Store={K:'pvz_eng_v15',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
 Store.set('plans',Store.get('plans',[]));
 Store.set('checkins',Store.get('checkins',[]));
 Store.set('streak',Store.get('streak',0));
@@ -542,17 +542,17 @@ function showLevelUp(lvl){let o=document.getElementById('lvlup-overlay');documen
 const COLLECT_DB={
   cars:[
     {name:'小家用车',emoji:'🚗',rarity:'common',unlock:'default'},
-    {name:'酷跑车',emoji:'🏎️',rarity:'common',unlock:'win3'},
-    {name:'出租车',emoji:'🚕',rarity:'common',unlock:'chest'},
-    {name:'警车',emoji:'🚓',rarity:'rare',unlock:'chest'},
-    {name:'救护车',emoji:'🚑',rarity:'rare',unlock:'chest'},
-    {name:'校车',emoji:'🚌',rarity:'rare',unlock:'chest'},
-    {name:'法拉利',emoji:'🚘',rarity:'epic',unlock:'win8'},
-    {name:'兰博基尼',emoji:'🚙',rarity:'epic',unlock:'chest'},
-    {name:'保时捷',emoji:'🚖',rarity:'epic',unlock:'chest'},
-    {name:'F1赛车',emoji:'🏎️',rarity:'epic',unlock:'lvl10'},
-    {name:'布加迪',emoji:'🚖',rarity:'legend',unlock:'win15'},
-    {name:'飞行汽车',emoji:'🛸',rarity:'legend',unlock:'lvl20'},
+    {name:'出租车',emoji:'🚕',rarity:'common',unlock:'win3'},
+    {name:'警车',emoji:'🚓',rarity:'common',unlock:'win6'},
+    {name:'救护车',emoji:'🚑',rarity:'rare',unlock:'win9'},
+    {name:'校车',emoji:'🚌',rarity:'rare',unlock:'win12'},
+    {name:'酷跑车',emoji:'🏎️',rarity:'rare',unlock:'win15'},
+    {name:'法拉利',emoji:'🚘',rarity:'epic',unlock:'win18'},
+    {name:'保时捷',emoji:'🚖',rarity:'epic',unlock:'win21'},
+    {name:'F1赛车',emoji:'🏁',rarity:'epic',unlock:'win24'},
+    {name:'布加迪',emoji:'🛞',rarity:'legend',unlock:'win27'},
+    {name:'飞行汽车',emoji:'🛸',rarity:'legend',unlock:'win30'},
+    {name:'兰博基尼',emoji:'🦾',rarity:'legend',unlock:'win33'},
   ],
   pets:[
     {name:'小猫咪',emoji:'🐱',rarity:'common',unlock:'chest'},
@@ -576,8 +576,10 @@ const COLLECT_DB={
     {name:'认识10词',emoji:'📚',rarity:'rare',unlock:'word10'},
     {name:'认识全部词',emoji:'💎',rarity:'legend',unlock:'wordAll'},
     {name:'初次胜利',emoji:'🏁',rarity:'common',unlock:'win1'},
-    {name:'赢5局',emoji:'🥇',rarity:'rare',unlock:'win5'},
-    {name:'赢15局',emoji:'👑',rarity:'epic',unlock:'win15'},
+    {name:'赢3局',emoji:'🥇',rarity:'rare',unlock:'win3'},
+    {name:'赢9局',emoji:'👑',rarity:'epic',unlock:'win9'},
+    {name:'赢18局',emoji:'💎',rarity:'epic',unlock:'win18'},
+    {name:'全车收集',emoji:'🚗',rarity:'legend',unlock:'win33'},
     {name:'初次升级',emoji:'⚡',rarity:'common',unlock:'lvl2'},
     {name:'达到5级',emoji:'💥',rarity:'rare',unlock:'lvl5'},
     {name:'达到10级',emoji:'🔥',rarity:'epic',unlock:'lvl10'},
@@ -635,8 +637,10 @@ function checkUnlocks(lvl){
     else if(u==='word10')should=known.length>=10;
     else if(u==='wordAll')should=known.length>=WORDS.length;
     else if(u==='win1')should=wins>=1;
-    else if(u==='win5')should=wins>=5;
-    else if(u==='win15')should=wins>=15;
+    else if(u==='win3')should=wins>=3;
+    else if(u==='win9')should=wins>=9;
+    else if(u==='win18')should=wins>=18;
+    else if(u==='win33')should=wins>=33;
     else if(u.startsWith('lvl')){let need=parseInt(u.slice(3));should=info.level>=need;}
     if(should){unlocked.badges.push(i);toast(`🏅 获得勋章：${b.emoji} ${b.name}`);changed=true;}
   });
@@ -706,7 +710,7 @@ function renderCollect(){
       ${isUnlocked?'':'<div class="collect-lock">🔒</div>'}
       <div class="collect-emoji">${isUnlocked?item.emoji:'❓'}</div>
       <div class="collect-name">${isUnlocked?item.name:'???'}</div>
-      <div class="collect-progress">${isUnlocked?(isCurrent?'✅ 当前':''):`${item.unlock}`}</div>
+      <div class="collect-progress">${isUnlocked?(isCurrent?'✅ 当前':''):`${formatUnlock(item.unlock)}`}</div>
     </div>`;
   });
   document.getElementById('collect-grid').innerHTML=html;
@@ -718,6 +722,26 @@ function renderCollect(){
   document.getElementById('collect-progress').style.width=Math.round(totalUnlocked/totalMax*100)+'%';
 }
 function selectCar(i){Store.set('currentCar',i);let car=COLLECT_DB.cars[i];toast(`🚗 已切换为：${car.emoji} ${car.name}`);renderCollect();}
+function formatUnlock(u){
+  if(u==='default')return '初始';
+  if(u==='chest')return '开宝箱';
+  if(u.startsWith('win')){let n=parseInt(u.slice(3));return `${n}胜解锁`;}
+  if(u.startsWith('lvl')){let n=parseInt(u.slice(3));return `${n}级解锁`;}
+  if(u==='checkin1')return '打卡1天';
+  if(u==='checkin7')return '打卡7天';
+  if(u==='checkin30')return '打卡30天';
+  if(u==='shadow1')return '跟读1句';
+  if(u==='shadow10')return '跟读10句';
+  if(u==='word1')return '认词1个';
+  if(u==='word10')return '认词10个';
+  if(u==='wordAll')return '认全部词';
+  if(u==='win1')return '赢1局';
+  if(u==='win3')return '赢3局';
+  if(u==='win9')return '赢9局';
+  if(u==='win18')return '赢18局';
+  if(u==='win33')return '赢33局';
+  return u;
+}
 
 // ===== Toast =====
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -1026,11 +1050,19 @@ function markWordKnown(){let idx=Store.get('wordIdx',0);let known=Store.get('kno
 
 // ===== 6. 游戏 =====
 let gameState={active:false,score:0,hp:5,qIdx:0,combo:0,answered:false,correctCount:0,winTarget:5};
-function updateGameStats(){let wins=Store.get('gameWins',0);document.getElementById('total-wins').textContent=wins;let curCar=Store.get('currentCar',0);document.getElementById('cur-car-name').textContent=COLLECT_DB.cars[curCar].name;document.getElementById('player-emoji').textContent=COLLECT_DB.cars[curCar].emoji;}
+function updateGameStats(){let wins=Store.get('gameWins',0);document.getElementById('total-wins').textContent=wins;let curCar=Store.get('currentCar',0);document.getElementById('cur-car-name').textContent=COLLECT_DB.cars[curCar].name;document.getElementById('player-emoji').textContent=COLLECT_DB.cars[curCar].emoji;updateNextCarProgress();}
 function startGame(){document.getElementById('game-start').style.display='none';document.getElementById('game-over').classList.remove('show');gameState={active:true,score:0,hp:5,qIdx:0,combo:0,answered:false,correctCount:0,winTarget:5};document.getElementById('player-emoji').textContent=COLLECT_DB.cars[Store.get('currentCar',0)].emoji;renderHP();renderScore();nextQuestion();}
 function renderHP(){let html='';for(let i=0;i<5;i++)html+=`<span class="hp-heart">${i<gameState.hp?'❤️':'🤍'}</span>`;document.getElementById('game-hp').innerHTML=html;}
 function renderScore(){document.getElementById('game-score').textContent=gameState.score;document.getElementById('game-wins').textContent=Store.get('gameWins',0);}
-function nextQuestion(){if(!gameState.active)return;let qi=Math.floor(Math.random()*QUESTIONS.length);gameState.qIdx=qi;let q=QUESTIONS[qi];document.getElementById('game-q-text').textContent=q.q;document.getElementById('game-q-sub').textContent='选对答案加速撞飞对手！';document.getElementById('game-progress').textContent=`进度：${gameState.correctCount}/${gameState.winTarget}`;let html='';q.opts.forEach((opt,i)=>{html+=`<div class="game-opt" onclick="answer(${i})">${opt}</div>`;});document.getElementById('game-options').innerHTML=html;let enemyEmojis=['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑'];document.getElementById('enemy-emoji').textContent=enemyEmojis[Math.floor(Math.random()*enemyEmojis.length)];}
+function updateNextCarProgress(){
+  let wins=Store.get('gameWins',0);
+  let nextCar=COLLECT_DB.cars.find(c=>{if(c.unlock==='default')return false;let need=parseInt(c.unlock.slice(3));return wins<need;});
+  let el=document.getElementById('game-progress');
+  if(!nextCar){el.textContent=`🎉 已解锁全部车辆！当前 ${wins} 胜`;return;}
+  let need=parseInt(nextCar.unlock.slice(3));
+  el.textContent=`下一辆车：${nextCar.emoji} ${nextCar.name} (${need}胜) · 当前 ${wins} 胜`;
+}
+function nextQuestion(){if(!gameState.active)return;let qi=Math.floor(Math.random()*QUESTIONS.length);gameState.qIdx=qi;let q=QUESTIONS[qi];document.getElementById('game-q-text').textContent=q.q;document.getElementById('game-q-sub').textContent='选对答案加速撞飞对手！';updateNextCarProgress();let html='';q.opts.forEach((opt,i)=>{html+=`<div class="game-opt" onclick="answer(${i})">${opt}</div>`;});document.getElementById('game-options').innerHTML=html;let enemyEmojis=['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑'];document.getElementById('enemy-emoji').textContent=enemyEmojis[Math.floor(Math.random()*enemyEmojis.length)];}
 function answer(idx){
   if(!gameState.active||gameState.answered)return;gameState.answered=true;
   let q=QUESTIONS[gameState.qIdx];let opts=document.querySelectorAll('.game-opt');opts.forEach(o=>o.style.pointerEvents='none');
@@ -1060,7 +1092,33 @@ function answer(idx){
   renderScore();
   setTimeout(()=>{let ec=document.getElementById('enemy-car');ec.style.transition='none';ec.style.transform='translateX(-50%)';ec.style.opacity='1';ec.style.top='20px';gameState.answered=false;nextQuestion();},1500);
 }
-function endGame(win){gameState.active=false;let wins=Store.get('gameWins',0);if(win){wins++;Store.set('gameWins',wins);let bonusXP=20;let bonusCoins=15;addXP(bonusXP);addCoins(bonusCoins);checkBadgeUnlocks();}let today=todayKey();let tg=Store.get('todayGame',{date:today,count:0});if(tg.date!==today)tg={date:today,count:0};tg.count++;Store.set('todayGame',tg);document.getElementById('result-emoji').textContent=win?'🎉':'💪';document.getElementById('result-text').textContent=win?'太棒了，你赢了！':'没关系，下次加油！';document.getElementById('result-detail').textContent=win?`答对 ${gameState.correctCount} 题 · +20XP +15🪙`:`答对 ${gameState.correctCount} 题`;document.getElementById('game-over').classList.add('show');updateGameStats();if(win){fxStars(window.innerWidth/2,window.innerHeight/2,20);}}
+function endGame(win){
+  gameState.active=false;
+  let wins=Store.get('gameWins',0);
+  let prevUnlocked=JSON.parse(JSON.stringify(Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]}).cars));
+  if(win){
+    wins++;Store.set('gameWins',wins);
+    let bonusXP=20;let bonusCoins=15;addXP(bonusXP);addCoins(bonusCoins);
+    checkBadgeUnlocks();
+  }
+  let today=todayKey();let tg=Store.get('todayGame',{date:today,count:0});
+  if(tg.date!==today)tg={date:today,count:0};
+  tg.count++;Store.set('todayGame',tg);
+  document.getElementById('result-emoji').textContent=win?'🎉':'💪';
+  document.getElementById('result-text').textContent=win?'太棒了，你赢了！':'没关系，下次加油！';
+  let detail=win?`答对 ${gameState.correctCount} 题 · +20XP +15🪙`:`答对 ${gameState.correctCount} 题`;
+  // 检查是否解锁了新车
+  let curUnlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]}).cars;
+  let newCars=curUnlocked.filter(i=>!prevUnlocked.includes(i));
+  if(newCars.length>0){
+    let carNames=newCars.map(i=>`${COLLECT_DB.cars[i].emoji} ${COLLECT_DB.cars[i].name}`).join('、');
+    detail+=` · 🎉 解锁新车：${carNames}！`;
+  }
+  document.getElementById('result-detail').textContent=detail;
+  document.getElementById('game-over').classList.add('show');
+  updateGameStats();
+  if(win){fxStars(window.innerWidth/2,window.innerHeight/2,20);}
+}
 
 // ===== 初始化 =====
 checkUnlocks(); // 启动时补发所有应得奖励
