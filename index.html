@@ -680,31 +680,48 @@ const CHEST_CONFIG={
 let currentChest=null;
 function openChest(type){let cfg=CHEST_CONFIG[type];if(!cfg)return;let coins=Store.get('coins',0);if(coins<cfg.price){toast(`🪙 金币不够！还差${cfg.price-coins}个`);return;}Store.set('coins',coins-cfg.price);updateTopbar();currentChest=type;document.getElementById('chest-emoji').textContent=cfg.emoji;document.getElementById('chest-emoji').className='chest-emoji';document.getElementById('chest-title').textContent=cfg.title;document.getElementById('chest-hint').textContent='点击下方按钮开启宝箱！';document.getElementById('chest-reward').style.display='none';document.getElementById('chest-open-btn').style.display='block';document.getElementById('chest-close-btn').style.display='none';document.getElementById('chest-modal').classList.add('show');}
 function doOpenChest(){if(!currentChest)return;let cfg=CHEST_CONFIG[currentChest];let emojiEl=document.getElementById('chest-emoji');emojiEl.classList.add('open');document.getElementById('chest-glow').classList.add('show');setTimeout(()=>document.getElementById('chest-glow').classList.remove('show'),1000);setTimeout(()=>{
-  // 随机选一个类型和物品
   let types=['cars','pets','skins'];
-  let type=types[Math.floor(Math.random()*types.length)];
-  let pool=COLLECT_DB[type];
-  let rarity=cfg.pool[Math.floor(Math.random()*cfg.pool.length)];
-  let candidates=pool.filter((item,i)=>{let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]});let isUnlocked=unlocked[type].includes(i);return!isUnlocked&&item.rarity===rarity;});
-  if(!candidates.length){candidates=pool.filter(item=>item.rarity===rarity);}
-  if(!candidates.length){candidates=pool;}
-  let item=candidates[Math.floor(Math.random()*candidates.length)];
-  let idx=pool.indexOf(item);
   let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]});
-  if(!unlocked[type].includes(idx)){unlocked[type].push(idx);Store.set('unlocked',unlocked);}
+  let rarity=cfg.pool[Math.floor(Math.random()*cfg.pool.length)];
+  let foundItem=null,foundType=null,foundIdx=-1;
+  let shuffledTypes=types.sort(()=>Math.random()-0.5);
+  for(let type of shuffledTypes){
+    let pool=COLLECT_DB[type];
+    let candidates=pool.filter((item,i)=>{return!unlocked[type].includes(i)&&item.rarity===rarity;});
+    if(candidates.length){foundItem=candidates[Math.floor(Math.random()*candidates.length)];foundType=type;foundIdx=pool.indexOf(foundItem);break;}
+  }
+  if(!foundItem){
+    for(let type of shuffledTypes){
+      let pool=COLLECT_DB[type];
+      let candidates=pool.filter((item,i)=>!unlocked[type].includes(i));
+      if(candidates.length){foundItem=candidates[Math.floor(Math.random()*candidates.length)];foundType=type;foundIdx=pool.indexOf(foundItem);break;}
+    }
+  }
   let rarityNames={common:'普通',rare:'稀有',epic:'史诗',legend:'传说'};
-  document.getElementById('reward-emoji').textContent=item.emoji;
-  document.getElementById('reward-name').textContent=item.name;
-  let rEl=document.getElementById('reward-rarity');rEl.textContent=rarityNames[item.rarity];rEl.className='tag-rarity tag-'+item.rarity;
+  if(foundItem){
+    if(!unlocked[foundType].includes(foundIdx)){unlocked[foundType].push(foundIdx);Store.set('unlocked',unlocked);}
+    let bonus={common:10,rare:30,epic:50,legend:100}[foundItem.rarity]||10;
+    addCoins(bonus);
+    document.getElementById('reward-emoji').textContent=foundItem.emoji;
+    document.getElementById('reward-name').textContent=foundItem.name;
+    let rEl=document.getElementById('reward-rarity');rEl.textContent=rarityNames[foundItem.rarity];rEl.className='tag-rarity tag-'+foundItem.rarity;
+    document.getElementById('chest-hint').textContent='🎉 恭喜获得新收集品！';
+    fxStars(window.innerWidth/2,window.innerHeight/2,15);
+    toast(`🎉 获得 ${foundItem.emoji} ${foundItem.name} +${bonus}🪙`);
+  }else{
+    let coinBonus=cfg.price;addCoins(coinBonus);
+    document.getElementById('reward-emoji').textContent='💰';
+    document.getElementById('reward-name').textContent='金币大礼包';
+    let rEl=document.getElementById('reward-rarity');rEl.textContent='金币';rEl.className='tag-rarity tag-legend';
+    document.getElementById('chest-hint').textContent='💰 收集品已集齐！获得金币补偿！';
+    fxStars(window.innerWidth/2,window.innerHeight/2,15);
+    fxCoins(window.innerWidth/2,window.innerHeight/2,10);
+    toast(`💰 收集已集齐！获得 ${coinBonus}🪙 补偿！`);
+  }
   document.getElementById('chest-reward').style.display='block';
   document.getElementById('chest-open-btn').style.display='none';
   document.getElementById('chest-close-btn').style.display='block';
-  document.getElementById('chest-hint').textContent='恭喜获得新收集品！';
-  // 额外金币奖励
-  let bonus=[common=10,rare=30,epic=50,legend=100][item.rarity]||10;
-  addCoins(bonus);
-  fxStars(window.innerWidth/2,window.innerHeight/2,15);
-  toast(`🎉 获得 ${item.emoji} ${item.name} +${bonus}🪙`);
+  checkBadgeUnlocks();
   setTimeout(()=>{if(document.getElementById('view-collect').classList.contains('active'))renderCollect();},500);
 },800);}
 function closeChestModal(e){if(e&&e.target!==document.getElementById('chest-modal')&&!e.target.classList.contains('chest-modal'))return;document.getElementById('chest-modal').classList.remove('show');currentChest=null;}
@@ -1077,7 +1094,7 @@ function updateNextCarProgress(){
   let need=parseInt(nextCar.unlock.slice(3));
   el.textContent=`下一辆车：${nextCar.emoji} ${nextCar.name} (${need}胜) · 当前 ${wins} 胜`;
 }
-function nextQuestion(){if(!gameState.active)return;let qi=Math.floor(Math.random()*QUESTIONS.length);gameState.qIdx=qi;let q=QUESTIONS[qi];document.getElementById('game-q-text').textContent=q.q;document.getElementById('game-q-sub').textContent='选对答案加速撞飞对手！';updateNextCarProgress();let html='';q.opts.forEach((opt,i)=>{html+=`<div class="game-opt" onclick="answer(${i})">${opt}</div>`;});document.getElementById('game-options').innerHTML=html;let enemyEmojis=['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑'];document.getElementById('enemy-emoji').textContent=enemyEmojis[Math.floor(Math.random()*enemyEmojis.length)];}
+function nextQuestion(){if(!gameState.active)return;let qi=Math.floor(Math.random()*QUESTIONS.length);gameState.qIdx=qi;let q=QUESTIONS[qi];document.getElementById('game-q-text').textContent=q.q;document.getElementById('game-q-sub').textContent='选对答案加速撞飞对手！';updateNextCarProgress();let html='';q.opts.forEach((opt,i)=>{html+=`<div class="game-opt" onclick="answer(${i})">${opt}</div>`;});document.getElementById('game-options').innerHTML=html;let playerCar=Store.get('currentCar',0);let unlocked=Store.get('unlocked',{cars:[0],pets:[],badges:[],skins:[]}).cars;let enemyPool=unlocked.filter(i=>i!==playerCar);if(!enemyPool.length)enemyPool=[0,1,2,3,4,5].filter(i=>i!==playerCar);if(!enemyPool.length)enemyPool=[0];let enemyIdx=enemyPool[Math.floor(Math.random()*enemyPool.length)];document.getElementById('enemy-emoji').textContent=COLLECT_DB.cars[enemyIdx].emoji;}
 function answer(idx){
   if(!gameState.active||gameState.answered)return;gameState.answered=true;
   let q=QUESTIONS[gameState.qIdx];let opts=document.querySelectorAll('.game-opt');opts.forEach(o=>o.style.pointerEvents='none');
