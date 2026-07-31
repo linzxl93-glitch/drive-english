@@ -341,16 +341,20 @@ input:focus{border-color:var(--pink);}
       <h1 class="page-title">🎤 跟读练习</h1>
       <p class="page-sub">听老师读，跟着读 · 每句+5 XP</p>
       <div class="shadow-card">
-        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">📚 Module 4 · You and me</div>
+        <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">📚 Module 4 · You and me · 第 <span id="shadow-cur-num">1</span>/<span id="shadow-total">27</span> 句</div>
         <div class="sentence-en" id="shadow-en">He is a boy.</div>
         <div class="sentence-zh" id="shadow-zh">他是个男孩。</div>
-        <div style="font-size:11px;color:var(--text-light);margin-bottom:8px;">🐢 慢速 · <span id="shadow-rate">0.7</span>x</div>
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:8px;">🐢 慢速 · <span id="shadow-rate">0.7</span>x</div>
         <div class="flex gap-8" style="justify-content:center;margin-top:8px;">
           <button class="btn btn-sm" onclick="shadowSlowPlay()">🐢 慢速</button>
           <button class="btn btn-sm btn-green" onclick="shadowNormalPlay()">▶ 正常</button>
         </div>
+        <div class="flex gap-8" style="justify-content:center;margin-top:10px;">
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.4);color:var(--text-light);" onclick="prevShadow()">← 上一句</button>
+          <button class="btn btn-sm btn-blue" onclick="nextShadow()">下一句 →</button>
+        </div>
         <div style="margin-top:16px;"><button class="record-btn" id="record-btn" onclick="toggleRecord()">🎤</button></div>
-        <div style="font-size:11px;color:var(--text-light);margin-top:8px;" id="record-status">点上面录制自己的声音</div>
+        <div style="font-size:13px;color:var(--text-light);margin-top:8px;" id="record-status">点上面录制自己的声音</div>
       </div>
       <div class="card card-yellow">
         <div style="font-weight:700;font-size:14px;margin-bottom:8px;">📝 三步跟读法</div>
@@ -497,7 +501,7 @@ input:focus{border-color:var(--pink);}
 
 <script>
 // ===== 数据层 =====
-const Store={K:'pvz_eng_v10',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
+const Store={K:'pvz_eng_v11',load(){try{return JSON.parse(localStorage.getItem(this.K))||{};}catch{return{};}},save(d){localStorage.setItem(this.K,JSON.stringify(d));},get(k,f){let d=this.load();return d[k]===undefined?f:d[k];},set(k,v){let d=this.load();d[k]=v;this.save(d);}};
 Store.set('plans',Store.get('plans',[]));
 Store.set('checkins',Store.get('checkins',[]));
 Store.set('streak',Store.get('streak',0));
@@ -975,15 +979,18 @@ function renderVideos(){let videos=Store.get('videos',[]);const colors=['rgba(25
 // ===== 4. 跟读 =====
 let isRecording=false,mediaRecorder=null,audioChunks=[];
 function shadowSpeak(text,rate){if(!window.speechSynthesis)return;window.speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=rate||0.7;u.pitch=1.1;window.speechSynthesis.speak(u);}
-function shadowSlowPlay(){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)];shadowSpeak(s.en,0.6);toast('🐢 慢速：'+s.en);}
-function shadowNormalPlay(){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)];shadowSpeak(s.en,1.0);toast('▶ 正常：'+s.en);}
-function playStep(n){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)];if(n===1){shadowSpeak(s.en,0.5);}else if(n===2){shadowSpeak(s.en,0.7);setTimeout(()=>shadowSpeak(s.en,0.9),2500);}else if(n===3){startRecord();}}
+function shadowSlowPlay(){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)%SHADOW_SENTENCES.length];shadowSpeak(s.en,0.6);toast('🐢 慢速：'+s.en);}
+function shadowNormalPlay(){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)%SHADOW_SENTENCES.length];shadowSpeak(s.en,1.0);toast('▶ 正常：'+s.en);}
+function playStep(n){let s=SHADOW_SENTENCES[Store.get('shadowIdx',0)%SHADOW_SENTENCES.length];if(n===1){shadowSpeak(s.en,0.5);}else if(n===2){shadowSpeak(s.en,0.7);setTimeout(()=>shadowSpeak(s.en,0.9),2500);}else if(n===3){startRecord();}}
+function prevShadow(){let idx=Store.get('shadowIdx',0);idx=(idx-1+SHADOW_SENTENCES.length)%SHADOW_SENTENCES.length;Store.set('shadowIdx',idx);renderShadow();}
+function nextShadow(){let idx=Store.get('shadowIdx',0);idx=(idx+1)%SHADOW_SENTENCES.length;Store.set('shadowIdx',idx);renderShadow();}
+function playShadowIdx(i){Store.set('shadowIdx',i);renderShadow();shadowSpeak(SHADOW_SENTENCES[i].en,0.7);}
 function playAllSentences(){if(!window.speechSynthesis)return;window.speechSynthesis.cancel();let i=0;function playNext(){if(i>=SHADOW_SENTENCES.length)return;shadowSpeak(SHADOW_SENTENCES[i].en,0.6);setTimeout(playNext,4000);i++;}playNext();toast('🔁 连续播放');}
 async function toggleRecord(){if(isRecording){stopRecord();return;}await startRecord();}
 async function startRecord(){try{let stream=await navigator.mediaDevices.getUserMedia({audio:true});mediaRecorder=new MediaRecorder(stream);audioChunks=[];mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);mediaRecorder.onstop=()=>{let blob=new Blob(audioChunks,{type:'audio/webm'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;let idx=Store.get('shadowIdx',0);a.download=`shadow-${idx+1}-${Date.now()}.webm`;a.click();URL.revokeObjectURL(url);let progress=Store.get('shadowProgress',{});progress[idx]=(progress[idx]||0)+1;Store.set('shadowProgress',progress);addXP(5);addCoins(2);toast('🎉 录音已保存 +5XP +2🪙');isRecording=false;document.getElementById('record-btn').classList.remove('recording');document.getElementById('record-status').textContent='✅ 录音已保存';renderShadow();checkBadgeUnlocks();};mediaRecorder.start();isRecording=true;document.getElementById('record-btn').classList.add('recording');document.getElementById('record-status').textContent='🔴 正在录音...再点停止';}catch(e){toast('🎤 请授权麦克风');}}
 function stopRecord(){if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();}
 function markShadowDone(){let idx=Store.get('shadowIdx',0);let progress=Store.get('shadowProgress',{});progress[idx]=(progress[idx]||0)+1;Store.set('shadowProgress',progress);let today=todayKey();let ts=Store.get('todayShadow',{date:today,count:0});if(ts.date!==today)ts={date:today,count:0};ts.count++;Store.set('todayShadow',ts);let nextIdx=(idx+1)%SHADOW_SENTENCES.length;Store.set('shadowIdx',nextIdx);addXP(5);addCoins(2);toast('🎉 +5XP +2🪙 下一句：'+SHADOW_SENTENCES[nextIdx].en);renderShadow();checkBadgeUnlocks();}
-function renderShadow(){let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;let s=SHADOW_SENTENCES[idx];document.getElementById('shadow-en').textContent=s.en;document.getElementById('shadow-zh').textContent=s.emoji+' '+s.zh;let progress=Store.get('shadowProgress',{});let html='';SHADOW_SENTENCES.forEach((s,i)=>{let p=progress[i]||0;let isCurrent=i===idx;html+=`<div class="sr-list" style="${isCurrent?'background:linear-gradient(135deg,rgba(168,216,240,0.5),rgba(184,230,200,0.5));':''}"><div class="sr-check ${p>0?'checked':''}" onclick="toggleShadowDone(${i})">${p>0?'✓':''}</div><div class="sr-content"><div class="sr-en">${s.emoji} ${s.en}</div><div class="sr-cn">${s.zh} ${p>0?'· ✅'+p+'次':''}</div></div><div class="sr-play" onclick="shadowSpeak('${s.en.replace(/'/g,"\\'")}',0.7)">▶</div></div>`;});document.getElementById('shadow-list').innerHTML=html;}
+function renderShadow(){let idx=Store.get('shadowIdx',0)%SHADOW_SENTENCES.length;let s=SHADOW_SENTENCES[idx];document.getElementById('shadow-en').textContent=s.en;document.getElementById('shadow-zh').textContent=s.emoji+' '+s.zh;document.getElementById('shadow-cur-num').textContent=idx+1;document.getElementById('shadow-total').textContent=SHADOW_SENTENCES.length;let progress=Store.get('shadowProgress',{});let html='';SHADOW_SENTENCES.forEach((sent,i)=>{let p=progress[i]||0;let isCurrent=i===idx;html+=`<div class="sr-list" style="${isCurrent?'background:linear-gradient(135deg,rgba(168,216,240,0.5),rgba(184,230,200,0.5));':''}"><div class="sr-check ${p>0?'checked':''}" onclick="toggleShadowDone(${i})">${p>0?'✓':''}</div><div class="sr-content"><div class="sr-en">${sent.emoji} ${sent.en}</div><div class="sr-cn">${sent.zh} ${p>0?'· ✅'+p+'次':''}</div></div><div class="sr-play" onclick="playShadowIdx(${i})">▶</div></div>`;});document.getElementById('shadow-list').innerHTML=html;}
 function toggleShadowDone(i){let progress=Store.get('shadowProgress',{});if(progress[i]){delete progress[i];}else{progress[i]=1;}Store.set('shadowProgress',progress);renderShadow();}
 
 // ===== 5. 单词卡片 =====
