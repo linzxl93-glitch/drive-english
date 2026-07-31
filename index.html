@@ -1233,7 +1233,7 @@ function startSnake(){
 }
 function getSnakeSpeed(){
   // 第1关 280ms 很慢 → 每关减20ms → 最低 100ms
-  return Math.max(100,420-snakeState.level*30);
+  return Math.max(100,830-snakeState.level*60);
 }
 function randomEmptyCell(){
   let g=snakeState.gridSize;
